@@ -1,0 +1,18 @@
+{
+  "name": "Rings — Oura Insights",
+  "short_name": "Rings",
+  "description": "A private, local dashboard for your exported Oura Ring data.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0b0d10",
+  "theme_color": "#0b0d10",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%230b0d10'/%3E%3Ccircle cx='50' cy='50' r='34' fill='none' stroke='%2329d0c0' stroke-width='9'/%3E%3Ccircle cx='50' cy='50' r='22' fill='none' stroke='%236c8bff' stroke-width='9'/%3E%3Ccircle cx='50' cy='50' r='10' fill='%23ff9f43'/%3E%3C/svg%3E",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

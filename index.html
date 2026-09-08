@@ -1,0 +1,1222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Rings — Oura Insights</title>
+<meta name="description" content="A private, free dashboard for your exported Oura Ring data. Nothing leaves your device.">
+<meta name="theme-color" content="#0b0d10">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Rings">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%230b0d10'/%3E%3Ccircle cx='50' cy='50' r='34' fill='none' stroke='%2329d0c0' stroke-width='9'/%3E%3Ccircle cx='50' cy='50' r='22' fill='none' stroke='%236c8bff' stroke-width='9'/%3E%3Ccircle cx='50' cy='50' r='10' fill='%23ff9f43'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%230b0d10'/%3E%3Ccircle cx='50' cy='50' r='34' fill='none' stroke='%2329d0c0' stroke-width='9'/%3E%3Ccircle cx='50' cy='50' r='22' fill='none' stroke='%236c8bff' stroke-width='9'/%3E%3Ccircle cx='50' cy='50' r='10' fill='%23ff9f43'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#0b0d10; --surface:#14171c; --surface2:#1b1f26; --text:#eef1f4; --muted:#8b93a1;
+  --border:rgba(255,255,255,0.09); --shadow:rgba(0,0,0,0.35);
+  --readiness:#29d0c0; --readiness-dim:rgba(41,208,192,0.15);
+  --sleep:#6c8bff; --sleep-dim:rgba(108,139,255,0.15);
+  --activity:#ff9f43; --activity-dim:rgba(255,159,67,0.15);
+  --good:#2ecc71; --fair:#f1c40f; --attention:#e74c3c; --optimal:#29d0c0;
+  --accent:#29d0c0;
+  --radius:16px;
+}
+[data-theme="light"]{
+  --bg:#f4f5f7; --surface:#ffffff; --surface2:#eef0f3; --text:#14171c; --muted:#697180;
+  --border:rgba(20,23,28,0.09); --shadow:rgba(20,23,28,0.08);
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+html,body{margin:0;padding:0;}
+body{
+  background:var(--bg); color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  min-height:100vh; padding-bottom:env(safe-area-inset-bottom);
+  transition:background .2s,color .2s;
+}
+button,input{font-family:inherit;}
+a{color:inherit;}
+.hidden{display:none !important;}
+::-webkit-scrollbar{height:6px;width:6px;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
+
+/* ---------- Top bar ---------- */
+.topbar{
+  position:sticky; top:0; z-index:50;
+  background:color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--border);
+  padding:calc(10px + env(safe-area-inset-top)) 16px 10px;
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+}
+.brand{display:flex; align-items:center; gap:8px; font-weight:800; font-size:17px; letter-spacing:-0.02em;}
+.brand svg{display:block;}
+.top-actions{display:flex; align-items:center; gap:8px;}
+.icon-btn{
+  width:34px;height:34px;border-radius:10px;border:1px solid var(--border);background:var(--surface);
+  color:var(--text); display:flex;align-items:center;justify-content:center;cursor:pointer;
+}
+.icon-btn:active{transform:scale(0.94);}
+
+.tabbar{
+  position:sticky; top:calc(53px + env(safe-area-inset-top)); z-index:49;
+  display:flex; gap:4px; overflow-x:auto; padding:8px 12px;
+  background:var(--bg); border-bottom:1px solid var(--border);
+  scrollbar-width:none;
+}
+.tabbar::-webkit-scrollbar{display:none;}
+.tab-btn{
+  flex:0 0 auto; padding:8px 14px; border-radius:999px; border:1px solid transparent;
+  background:transparent; color:var(--muted); font-size:13.5px; font-weight:600; cursor:pointer;
+  white-space:nowrap;
+}
+.tab-btn.active{background:var(--surface2); color:var(--text); border-color:var(--border);}
+
+.view{padding:16px; max-width:900px; margin:0 auto; animation:fade .25s ease;}
+@keyframes fade{from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:translateY(0);}}
+
+/* ---------- Upload / empty state ---------- */
+#upload-screen{max-width:640px; margin:0 auto; padding:28px 16px 60px;}
+.hero{text-align:center; margin-bottom:22px;}
+.hero-badge{
+  display:inline-flex; align-items:center; gap:8px; padding:6px 12px; border-radius:999px;
+  background:var(--readiness-dim); color:var(--readiness); font-size:12.5px; font-weight:700; margin-bottom:14px;
+}
+.hero h1{font-size:28px; margin:0 0 8px; letter-spacing:-0.02em;}
+.hero p{color:var(--muted); font-size:15px; line-height:1.5; margin:0 auto; max-width:460px;}
+.drop-zone{
+  margin-top:22px; border:2px dashed var(--border); border-radius:20px; padding:34px 18px;
+  text-align:center; cursor:pointer; background:var(--surface); transition:.15s;
+}
+.drop-zone.drag-over{border-color:var(--readiness); background:var(--readiness-dim);}
+.drop-zone h3{margin:10px 0 4px; font-size:16px;}
+.drop-zone p{color:var(--muted); font-size:13px; margin:0;}
+.file-list{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:20px;}
+.file-item{
+  display:flex; align-items:center; gap:8px; font-size:12px; color:var(--muted);
+  background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:8px 10px;
+}
+.file-item .dot{width:7px;height:7px;border-radius:50%;background:var(--border); flex:0 0 auto;}
+.file-item.loaded{color:var(--text);}
+.file-item.loaded .dot{background:var(--good);}
+.generate-btn{
+  margin-top:20px; width:100%; padding:14px; border-radius:14px; border:none; font-size:15px; font-weight:700;
+  background:var(--border); color:var(--muted); cursor:not-allowed; transition:.15s;
+}
+.generate-btn.ready{background:linear-gradient(135deg, var(--readiness), var(--sleep)); color:#04110f; cursor:pointer;}
+.privacy-note{
+  margin-top:18px; display:flex; gap:10px; align-items:flex-start; font-size:12.5px; color:var(--muted);
+  background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:12px 14px; line-height:1.5;
+}
+.privacy-note svg{flex:0 0 auto; margin-top:1px; color:var(--good);}
+.export-help{margin-top:14px; text-align:center; font-size:12.5px;}
+.export-help a{color:var(--readiness); font-weight:600; text-decoration:none;}
+
+/* ---------- Cards / shared ---------- */
+.card{background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:16px;}
+.section-title{font-size:13px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); font-weight:700; margin:22px 0 10px;}
+.section-title:first-child{margin-top:0;}
+
+/* Date nav */
+.date-nav{display:flex; gap:6px; overflow-x:auto; padding-bottom:4px; margin-bottom:14px; scrollbar-width:none;}
+.date-nav::-webkit-scrollbar{display:none;}
+.date-pill{
+  flex:0 0 auto; min-width:52px; padding:8px 4px; border-radius:14px; border:1px solid var(--border);
+  background:var(--surface); text-align:center; cursor:pointer;
+}
+.date-pill.active{border-color:var(--readiness); background:var(--readiness-dim);}
+.date-pill .pill-dow{font-size:10.5px; color:var(--muted); font-weight:700; text-transform:uppercase;}
+.date-pill.active .pill-dow{color:var(--readiness);}
+.date-pill .pill-dom{font-size:15px; font-weight:800; margin-top:2px;}
+.dash-date-full{font-size:14px; color:var(--muted); margin:2px 0 16px; font-weight:600;}
+
+/* Score rings */
+.score-section{display:grid; grid-template-columns:repeat(3,1fr); gap:10px;}
+.score-card{
+  background:var(--surface); border:1px solid var(--border); border-radius:18px; padding:14px 8px;
+  text-align:center; cursor:pointer; position:relative; overflow:hidden;
+}
+.score-card-label{font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); margin-top:6px;}
+.score-card.readiness .score-card-label{color:var(--readiness);}
+.score-card.sleep .score-card-label{color:var(--sleep);}
+.score-card.activity .score-card-label{color:var(--activity);}
+.score-val{font-size:13px; font-weight:700; margin-top:2px; color:var(--muted);}
+.ring-wrap{position:relative; width:74px; height:74px; margin:0 auto;}
+.ring-wrap svg{transform:rotate(-90deg);}
+.ring-num{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:800;}
+
+/* Stats grid */
+.stats-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:12px;}
+@media (max-width:420px){.stats-grid{grid-template-columns:repeat(2,1fr);}}
+.stat-box{background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:12px 10px;}
+.stat-box-label{font-size:10.5px; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:.03em;}
+.stat-box-value{font-size:19px; font-weight:800; margin-top:4px;}
+.stat-box-unit{font-size:11px; color:var(--muted); font-weight:600; margin-left:2px;}
+
+/* Contributors */
+.sub-scores{display:grid; grid-template-columns:1fr 1fr; gap:10px 16px; margin-top:6px;}
+@media (max-width:460px){.sub-scores{grid-template-columns:1fr;}}
+.sub-score-item{}
+.sub-score-label{font-size:12px; color:var(--muted); font-weight:600; display:flex; justify-content:space-between; margin-bottom:5px;}
+.sub-score-bar-bg{height:6px; border-radius:4px; background:var(--surface2); overflow:hidden;}
+.sub-score-bar-fill{height:100%; border-radius:4px;}
+.detail-block{margin-top:10px;}
+.detail-header{display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;}
+.detail-header h3{margin:0; font-size:15px; display:flex; align-items:center; gap:8px;}
+.badge{font-size:12px; font-weight:800; padding:3px 9px; border-radius:999px;}
+
+/* Trends */
+.control-row{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px;}
+.chip{
+  padding:7px 13px; border-radius:999px; border:1px solid var(--border); background:var(--surface);
+  color:var(--muted); font-size:12.5px; font-weight:700; cursor:pointer;
+}
+.chip.active{color:#04110f; border-color:transparent;}
+.chart-wrap{background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:14px 10px 8px; position:relative;}
+.chart-legend{display:flex; gap:14px; font-size:12px; color:var(--muted); padding:0 6px 8px; flex-wrap:wrap;}
+.chart-legend span{display:inline-flex; align-items:center; gap:5px;}
+.legend-dot{width:8px;height:8px;border-radius:50%;}
+.chart-tooltip{
+  position:absolute; pointer-events:none; background:var(--text); color:var(--bg); font-size:11.5px; font-weight:700;
+  padding:5px 8px; border-radius:8px; transform:translate(-50%,-115%); white-space:nowrap; opacity:0; transition:opacity .1s; z-index:5;
+}
+.summary-row{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:12px;}
+.summary-box{background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:10px; text-align:center;}
+.summary-box .lbl{font-size:10.5px; color:var(--muted); font-weight:700; text-transform:uppercase;}
+.summary-box .val{font-size:17px; font-weight:800; margin-top:3px;}
+
+/* Calendar */
+.cal-header{display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;}
+.cal-header button{background:var(--surface); border:1px solid var(--border); color:var(--text); width:32px;height:32px;border-radius:9px; cursor:pointer;}
+.cal-months-grid{display:flex; flex-wrap:wrap; gap:20px 24px;}
+.cal-month{margin-bottom:0; width:280px;}
+.cal-month-title{font-size:13px; font-weight:700; color:var(--muted); margin:0 0 6px 2px;}
+.cal-grid{display:grid; grid-template-columns:repeat(7,1fr); gap:3px;}
+.cal-dow{font-size:10px; text-align:center; color:var(--muted); font-weight:700; padding-bottom:2px;}
+.cal-cell{aspect-ratio:1; max-width:34px; max-height:34px; border-radius:6px; cursor:pointer; position:relative;}
+.cal-cell.empty{cursor:default;}
+.cal-cell.today{box-shadow:0 0 0 2px var(--readiness) inset;}
+.cal-legend{display:flex; align-items:center; gap:6px; font-size:11px; color:var(--muted); margin-top:6px; flex-wrap:wrap;}
+.cal-legend .sw{width:12px;height:12px;border-radius:3px;}
+
+/* Insights */
+.insight-card{display:flex; gap:12px; padding:14px; margin-bottom:10px;}
+.insight-icon{width:38px;height:38px;border-radius:11px; flex:0 0 auto; display:flex;align-items:center;justify-content:center; font-size:18px;}
+.insight-body h4{margin:0 0 3px; font-size:14px;}
+.insight-body p{margin:0; font-size:13px; color:var(--muted); line-height:1.5;}
+
+/* Journal */
+.tag-grid{display:flex; flex-wrap:wrap; gap:8px; margin:12px 0 16px;}
+.tag-chip{
+  padding:8px 14px; border-radius:999px; border:1px solid var(--border); background:var(--surface2);
+  font-size:13px; font-weight:600; cursor:pointer; color:var(--muted);
+}
+.tag-chip.on{background:var(--sleep); color:#0a0f1f; border-color:transparent;}
+textarea.journal-note{
+  width:100%; min-height:80px; border-radius:12px; border:1px solid var(--border); background:var(--surface2);
+  color:var(--text); padding:12px; font-size:14px; resize:vertical; font-family:inherit;
+}
+.journal-history{margin-top:18px; display:flex; flex-direction:column; gap:8px;}
+.journal-hist-item{background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:10px 12px; font-size:13px; cursor:pointer;}
+.journal-hist-item .jh-date{font-weight:700; margin-bottom:3px;}
+.journal-hist-item .jh-tags{color:var(--muted); font-size:12px;}
+
+/* Data/settings */
+.settings-row{display:flex; align-items:center; justify-content:space-between; padding:14px 0; border-bottom:1px solid var(--border); gap:12px;}
+.settings-row:last-child{border-bottom:none;}
+.settings-row .s-label{font-weight:700; font-size:14px;}
+.settings-row .s-desc{font-size:12.5px; color:var(--muted); margin-top:2px;}
+.btn{
+  padding:9px 16px; border-radius:11px; border:1px solid var(--border); background:var(--surface2); color:var(--text);
+  font-size:13px; font-weight:700; cursor:pointer; white-space:nowrap;
+}
+.btn.primary{background:var(--readiness); color:#04110f; border-color:transparent;}
+.btn.danger{background:transparent; color:var(--attention); border-color:var(--attention);}
+.loaded-range{font-size:13px; color:var(--muted); margin-bottom:4px;}
+
+.empty-note{text-align:center; color:var(--muted); font-size:13.5px; padding:30px 10px;}
+.spacer-tab{height:6px;}
+</style>
+</head>
+<body data-theme="dark">
+
+<div id="upload-screen">
+  <div class="hero">
+    <div class="hero-badge">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 2L4 6v6c0 5.2 3.4 9.4 8 10.5 4.6-1.1 8-5.3 8-10.5V6l-8-4z" fill="currentColor"/></svg>
+      100% local · no account · no subscription
+    </div>
+    <h1>Your Oura data, on your terms</h1>
+    <p>Import the CSV files you export from Oura and get a full dashboard — trends, streaks, personal records and correlations — without paying anyone or sending your data anywhere.</p>
+  </div>
+
+  <div class="drop-zone" id="drop-zone">
+    <svg width="34" height="34" viewBox="0 0 24 24" fill="none" style="color:var(--readiness)"><path d="M12 16V4M12 4l-4 4M12 4l4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    <h3>Drop your CSV files here</h3>
+    <p>or tap to browse — you can select several at once</p>
+    <input type="file" id="file-input" multiple accept=".csv" style="display:none">
+  </div>
+
+  <div class="file-list" id="file-list">
+    <div class="file-item" data-key="dailyactivity"><span class="dot"></span>Activity</div>
+    <div class="file-item" data-key="dailyreadiness"><span class="dot"></span>Readiness</div>
+    <div class="file-item" data-key="dailysleep"><span class="dot"></span>Sleep</div>
+    <div class="file-item" data-key="sleep"><span class="dot"></span>Sleep detail</div>
+    <div class="file-item" data-key="dailyspo2"><span class="dot"></span>SpO2</div>
+    <div class="file-item" data-key="dailystress"><span class="dot"></span>Stress</div>
+    <div class="file-item" data-key="dailyresilience"><span class="dot"></span>Resilience</div>
+    <div class="file-item" data-key="dailycardiovascularage"><span class="dot"></span>Cardio age</div>
+    <div class="file-item" data-key="heartrate"><span class="dot"></span>Heart rate</div>
+    <div class="file-item" data-key="temperature"><span class="dot"></span>Temperature</div>
+  </div>
+
+  <button class="generate-btn" id="generate-btn">Build my dashboard</button>
+
+  <div class="privacy-note">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2l8 4v6c0 5.2-3.4 9.4-8 10.5C7.4 21.4 4 17.2 4 12V6l8-4z" stroke="currentColor" stroke-width="2"/><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <div>Everything happens in this browser tab. Files are parsed on your device and saved only to this browser's local storage — nothing is uploaded, and there's no login. Add this page to your home screen for an app-like, offline experience.</div>
+  </div>
+  <div class="export-help">Don't have your CSVs yet? Get them from <a href="https://cloud.ouraring.com/export" target="_blank" rel="noopener">cloud.ouraring.com/export</a></div>
+</div>
+
+<div id="app" class="hidden">
+  <div class="topbar">
+    <div class="brand">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#29d0c0" stroke-width="2.2"/><circle cx="12" cy="12" r="5" stroke="#6c8bff" stroke-width="2.2"/><circle cx="12" cy="12" r="1.6" fill="#ff9f43"/></svg>
+      Rings
+    </div>
+    <div class="top-actions">
+      <button class="icon-btn" id="theme-toggle" title="Toggle theme">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+  </div>
+  <div class="tabbar">
+    <button class="tab-btn active" data-tab="today">Today</button>
+    <button class="tab-btn" data-tab="trends">Trends</button>
+    <button class="tab-btn" data-tab="calendar">Calendar</button>
+    <button class="tab-btn" data-tab="insights">Insights</button>
+    <button class="tab-btn" data-tab="journal">Journal</button>
+    <button class="tab-btn" data-tab="data">Data</button>
+  </div>
+
+  <div class="view" id="view-today"></div>
+  <div class="view hidden" id="view-trends"></div>
+  <div class="view hidden" id="view-calendar"></div>
+  <div class="view hidden" id="view-insights"></div>
+  <div class="view hidden" id="view-journal"></div>
+  <div class="view hidden" id="view-data"></div>
+</div>
+
+<script>
+'use strict';
+
+/* =========================================================
+   CSV PARSING (auto-detects comma vs semicolon delimiter)
+   ========================================================= */
+function detectDelimiter(headerLine){
+  const commaCount = (headerLine.match(/,/g)||[]).length;
+  const semiCount = (headerLine.match(/;/g)||[]).length;
+  return semiCount > commaCount ? ';' : ',';
+}
+function parseCSVLine(line, delim){
+  const result = []; let cur=''; let inQ=false;
+  for(let i=0;i<line.length;i++){
+    const ch=line[i];
+    if(ch === '"'){
+      if(inQ && line[i+1] === '"'){cur+='"'; i++;}
+      else inQ = !inQ;
+    } else if(ch === delim && !inQ){
+      result.push(cur); cur='';
+    } else { cur += ch; }
+  }
+  result.push(cur);
+  return result;
+}
+function parseCSV(text){
+  const lines = text.replace(/^﻿/,'').trim().split(/\r?\n/);
+  if(lines.length < 2) return [];
+  const delim = detectDelimiter(lines[0]);
+  const headers = parseCSVLine(lines[0], delim).map(h=>h.trim());
+  return lines.slice(1).filter(l=>l.trim()).map(line=>{
+    const vals = parseCSVLine(line, delim);
+    const obj = {};
+    headers.forEach((h,i)=>{
+      let v = (vals[i] !== undefined) ? vals[i].trim() : '';
+      if(v.startsWith('{') || v.startsWith('[')){
+        try{ v = JSON.parse(v); }catch(e){ /* leave as string */ }
+      }
+      obj[h]=v;
+    });
+    return obj;
+  });
+}
+function dateKey(s){ return s ? String(s).substring(0,10) : ''; }
+
+/* =========================================================
+   STATE
+   ========================================================= */
+const STORAGE_KEY = 'rings_oura_data_v1';
+const JOURNAL_KEY = 'rings_oura_journal_v1';
+const THEME_KEY = 'rings_oura_theme';
+
+let DATA = { activity:{}, readiness:{}, sleep:{}, sleepdetail:{}, spo2:{}, stress:{}, resilience:{}, cardio:{}, heartrate:{}, temperature:{} };
+let JOURNAL = {}; // date -> {tags:[...], note:''}
+let ALL_DATES = [];
+let selectedDate = '';
+let currentTab = 'today';
+let trendMetric = 'readiness';
+let trendRange = 30;
+let calYear = null;
+let calMetric = 'readiness';
+
+const FILE_MAP = {
+  'dailyactivity':'activity',
+  'dailyreadiness':'readiness',
+  'dailysleep':'sleep',
+  'sleeptime':'sleepdetail',
+  'sleep':'sleepdetail',
+  'dailyspo2':'spo2',
+  'dailystress':'stress',
+  'dailyresilience':'resilience',
+  'dailycardiovascularage':'cardio',
+  'heartrate':'heartrate',
+  'temperature':'temperature'
+};
+const FILE_MAP_ORDER = ['dailyactivity','dailyreadiness','dailysleep','sleeptime','sleep','dailyspo2','dailystress','dailyresilience','dailycardiovascularage','heartrate','temperature'];
+
+const loadedFiles = {};
+
+function loadPersisted(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw){ DATA = Object.assign(DATA, JSON.parse(raw)); }
+  }catch(e){}
+  try{
+    const rawJ = localStorage.getItem(JOURNAL_KEY);
+    if(rawJ) JOURNAL = JSON.parse(rawJ);
+  }catch(e){}
+  const theme = localStorage.getItem(THEME_KEY);
+  if(theme) document.body.setAttribute('data-theme', theme);
+}
+function persistData(){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(DATA)); }catch(e){ alert('Could not save data locally — your browser storage may be full.'); } }
+function persistJournal(){ try{ localStorage.setItem(JOURNAL_KEY, JSON.stringify(JOURNAL)); }catch(e){} }
+
+/* =========================================================
+   FILE HANDLING
+   ========================================================= */
+function matchFileKey(filename){
+  const base = filename.replace('.csv','').replace(/[\s_\-]/g,'').replace(/\(\d+\)$/,'').toLowerCase();
+  for(const k of FILE_MAP_ORDER){
+    if(base.includes(k)) return k;
+  }
+  return null;
+}
+
+async function handleFiles(files){
+  let any = false;
+  for(const file of files){
+    if(!file.name.toLowerCase().endsWith('.csv')) continue;
+    const key = matchFileKey(file.name);
+    if(!key) continue;
+    const text = await file.text();
+    const rows = parseCSV(text);
+    const dataKey = FILE_MAP[key];
+    if(dataKey === 'heartrate' || dataKey === 'temperature' || dataKey === 'sleepdetail'){
+      // multiple rows per day -> arrays, merged/deduped by timestamp
+      rows.forEach(row=>{
+        const d = dateKey(row.day || row.timestamp || row.bedtime_start || '');
+        if(!d) return;
+        if(!DATA[dataKey][d]) DATA[dataKey][d] = [];
+        DATA[dataKey][d].push(row);
+      });
+    } else {
+      rows.forEach(row=>{
+        const d = dateKey(row.day || row.timestamp || '');
+        if(!d) return;
+        DATA[dataKey][d] = row; // last one wins on duplicate export
+      });
+    }
+    loadedFiles[key] = true;
+    any = true;
+    const fi = document.querySelector('.file-item[data-key="'+key+'"]');
+    if(fi) fi.classList.add('loaded');
+  }
+  if(any){
+    persistData();
+    const btn = document.getElementById('generate-btn');
+    if(Object.keys(loadedFiles).length >= 1) btn.classList.add('ready');
+  } else {
+    alert("Those files weren't recognized as Oura export CSVs. Try the files exactly as they came from cloud.ouraring.com/export.");
+  }
+}
+
+/* =========================================================
+   DERIVED DAY RECORD
+   ========================================================= */
+function avg(arr){ return arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : null; }
+
+function heartrateStatsForDay(d){
+  const recs = DATA.heartrate[d];
+  if(!recs || !recs.length) return null;
+  const bpms = recs.map(r=>Number(r.bpm)).filter(v=>v>0 && v<250);
+  if(!bpms.length) return null;
+  const rest = recs.filter(r=>r.source==='awake'||r.source==='rest'||r.source==='sleep').map(r=>Number(r.bpm)).filter(v=>v>0&&v<250);
+  return {
+    min: Math.min(...bpms), max: Math.max(...bpms), avg: avg(bpms),
+    resting: rest.length ? Math.min(...rest) : Math.min(...bpms)
+  };
+}
+function tempForDay(d){
+  const recs = DATA.temperature[d];
+  if(!recs || !recs.length) return null;
+  const deltas = recs.map(r=>Number(r.temperature_delta)).filter(v=>!isNaN(v));
+  return deltas.length ? avg(deltas) : null;
+}
+function sleepDetailForDay(d){
+  const recs = DATA.sleepdetail[d];
+  if(!recs || !recs.length) return null;
+  // prefer the longest duration record (main sleep) if several
+  let best = recs[0];
+  recs.forEach(r=>{
+    const dur = Number(r.total_sleep_duration || r.time_in_bed || 0);
+    const bestDur = Number(best.total_sleep_duration || best.time_in_bed || 0);
+    if(dur > bestDur) best = r;
+  });
+  return best;
+}
+
+function getDay(d){
+  const r = DATA.readiness[d] || null;
+  const s = DATA.sleep[d] || null;
+  const a = DATA.activity[d] || null;
+  const spo2 = DATA.spo2[d] || null;
+  const stress = DATA.stress[d] || null;
+  const res = DATA.resilience[d] || null;
+  const cardio = DATA.cardio[d] || null;
+  const sd = sleepDetailForDay(d);
+  const hr = heartrateStatsForDay(d);
+  const temp = tempForDay(d);
+  return {date:d, readiness:r, sleep:s, activity:a, spo2, stress, resilience:res, cardio, sleepdetail:sd, hr, temp};
+}
+
+function recomputeDates(){
+  const set = new Set();
+  ['activity','readiness','sleep','spo2','stress','resilience','cardio'].forEach(k=>{
+    Object.keys(DATA[k]).forEach(d=>set.add(d));
+  });
+  ['heartrate','temperature','sleepdetail'].forEach(k=>{
+    Object.keys(DATA[k]).forEach(d=>set.add(d));
+  });
+  ALL_DATES = Array.from(set).sort();
+}
+
+/* =========================================================
+   FORMATTING HELPERS
+   ========================================================= */
+function scoreColor(s){
+  if(s===null||s===undefined||s==='') return 'var(--border)';
+  s = Number(s);
+  if(s>=85) return 'var(--optimal)';
+  if(s>=70) return 'var(--good)';
+  if(s>=60) return 'var(--fair)';
+  return 'var(--attention)';
+}
+function scoreLabel(s){
+  if(s===null||s===undefined||s==='') return 'No data';
+  s=Number(s);
+  if(s>=85) return 'Optimal';
+  if(s>=70) return 'Good';
+  if(s>=60) return 'Fair';
+  return 'Pay attention';
+}
+function fmtDateFull(d){
+  const dt = new Date(d+'T12:00:00');
+  return dt.toLocaleDateString(undefined,{weekday:'long', month:'long', day:'numeric', year:'numeric'});
+}
+function fmtDur(seconds){
+  if(seconds===undefined||seconds===null||seconds==='' || isNaN(Number(seconds))) return '--';
+  const s = Number(seconds);
+  const h = Math.floor(s/3600); const m = Math.round((s%3600)/60);
+  return h+'h '+m+'m';
+}
+function num(v, digits){
+  if(v===undefined||v===null||v===''||isNaN(Number(v))) return '--';
+  return Number(v).toFixed(digits===undefined?0:digits);
+}
+function ringSVG(score, color, size, strokeW){
+  size = size||74; strokeW = strokeW||8;
+  const r = (size-strokeW)/2; const c = size/2; const circ = 2*Math.PI*r;
+  const val = score ? Math.min(100,Math.max(0,Number(score))) : 0;
+  const dash = circ * (val/100);
+  return '<svg width="'+size+'" height="'+size+'" viewBox="0 0 '+size+' '+size+'">'+
+    '<circle cx="'+c+'" cy="'+c+'" r="'+r+'" fill="none" stroke="var(--border)" stroke-width="'+strokeW+'"/>'+
+    (score ? '<circle cx="'+c+'" cy="'+c+'" r="'+r+'" fill="none" stroke="'+color+'" stroke-width="'+strokeW+'" stroke-linecap="round" stroke-dasharray="'+dash+' '+circ+'"/>' : '') +
+    '</svg>';
+}
+function contribBar(label, val, color){
+  const v = (val===undefined||val===null||val==='') ? null : Number(val);
+  return '<div class="sub-score-item"><div class="sub-score-label"><span>'+label+'</span><span>'+(v===null?'--':v)+'</span></div>'+
+    '<div class="sub-score-bar-bg"><div class="sub-score-bar-fill" style="width:'+(v||0)+'%; background:'+color+'"></div></div></div>';
+}
+function prettyKey(k){
+  return k.replace(/_/g,' ').replace(/\b\w/g, c=>c.toUpperCase());
+}
+
+/* =========================================================
+   TABS
+   ========================================================= */
+document.addEventListener('DOMContentLoaded', init);
+
+function init(){
+  loadPersisted();
+  recomputeDates();
+  wireUploadScreen();
+  wireTopbar();
+  if(ALL_DATES.length > 0){
+    showApp();
+  }
+}
+
+function showApp(){
+  document.getElementById('upload-screen').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+  selectedDate = ALL_DATES[ALL_DATES.length-1];
+  calYear = new Date(selectedDate+'T12:00:00').getFullYear();
+  renderTab('today');
+}
+
+function wireTopbar(){
+  document.querySelectorAll('.tab-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      renderTab(btn.dataset.tab);
+    });
+  });
+  document.getElementById('theme-toggle').addEventListener('click', ()=>{
+    const cur = document.body.getAttribute('data-theme');
+    const next = cur === 'dark' ? 'light' : 'dark';
+    document.body.setAttribute('data-theme', next);
+    localStorage.setItem(THEME_KEY, next);
+  });
+}
+
+function renderTab(tab){
+  currentTab = tab;
+  document.querySelectorAll('.view').forEach(v=>v.classList.add('hidden'));
+  const el = document.getElementById('view-'+tab);
+  el.classList.remove('hidden');
+  if(tab==='today') renderToday();
+  else if(tab==='trends') renderTrends();
+  else if(tab==='calendar') renderCalendar();
+  else if(tab==='insights') renderInsights();
+  else if(tab==='journal') renderJournal();
+  else if(tab==='data') renderData();
+}
+
+/* =========================================================
+   UPLOAD SCREEN WIRING
+   ========================================================= */
+function wireUploadScreen(){
+  const input = document.getElementById('file-input');
+  const dz = document.getElementById('drop-zone');
+  dz.addEventListener('click', ()=>input.click());
+  input.addEventListener('change', e=>handleFiles(Array.from(e.target.files)));
+  dz.addEventListener('dragover', e=>{e.preventDefault(); dz.classList.add('drag-over');});
+  dz.addEventListener('dragleave', ()=>dz.classList.remove('drag-over'));
+  dz.addEventListener('drop', e=>{
+    e.preventDefault(); dz.classList.remove('drag-over');
+    handleFiles(Array.from(e.dataTransfer.files));
+  });
+  document.getElementById('generate-btn').addEventListener('click', ()=>{
+    recomputeDates();
+    if(ALL_DATES.length===0){ alert('No valid date data found. Please check your CSV files.'); return; }
+    showApp();
+  });
+}
+
+/* =========================================================
+   TODAY VIEW
+   ========================================================= */
+function renderToday(){
+  const el = document.getElementById('view-today');
+  const idx = ALL_DATES.indexOf(selectedDate);
+  const startIdx = Math.max(0, idx-6);
+  const windowDates = ALL_DATES.slice(startIdx, idx+1);
+
+  let html = '<div class="date-nav" id="date-nav">';
+  windowDates.forEach(d=>{
+    const dt = new Date(d+'T12:00:00');
+    const active = d===selectedDate ? ' active' : '';
+    html += '<div class="date-pill'+active+'" data-date="'+d+'">'+
+      '<div class="pill-dow">'+dt.toLocaleDateString(undefined,{weekday:'short'})+'</div>'+
+      '<div class="pill-dom">'+dt.getDate()+'</div></div>';
+  });
+  html += '</div>';
+  html += '<div class="dash-date-full">'+fmtDateFull(selectedDate)+'</div>';
+
+  const day = getDay(selectedDate);
+  const rScore = day.readiness?.score, sScore = day.sleep?.score, aScore = day.activity?.score;
+
+  html += '<div class="score-section">'+scoreCard('readiness','Readiness',rScore,'var(--readiness)')+scoreCard('sleep','Sleep',sScore,'var(--sleep)')+scoreCard('activity','Activity',aScore,'var(--activity)')+'</div>';
+
+  // Quick stats
+  html += '<div class="stats-grid">';
+  html += statBox('Steps', day.activity?.steps ? Number(day.activity.steps).toLocaleString() : '--','');
+  html += statBox('Resting HR', day.hr ? num(day.hr.resting,0) : (day.sleepdetail?.average_heart_rate ? num(day.sleepdetail.average_heart_rate,0):'--'),'bpm');
+  html += statBox('HRV', day.sleepdetail?.average_hrv ? num(day.sleepdetail.average_hrv,0) : '--','ms');
+  html += statBox('Body temp', day.temp!==null ? ((day.temp>=0?'+':'')+num(day.temp,2)) : (day.sleep?.contributors?.body_temperature? '--':'--'),'°');
+  html += statBox('SpO2', day.spo2?.spo2_percentage?.average ? num(day.spo2.spo2_percentage.average,1):'--','%');
+  html += statBox('Sleep time', day.sleepdetail?.total_sleep_duration ? fmtDur(day.sleepdetail.total_sleep_duration) : '--','');
+  html += '</div>';
+
+  // Detail: Readiness
+  html += detailBlock('Readiness', rScore, 'var(--readiness)', day.readiness?.contributors, ['activity_balance','body_temperature','hrv_balance','previous_day_activity','previous_night','recovery_index','resting_heart_rate','sleep_balance','sleep_regularity']);
+  // Detail: Sleep
+  let sleepExtra = '';
+  if(day.sleepdetail){
+    const sd = day.sleepdetail;
+    sleepExtra = '<div class="stats-grid" style="margin-top:10px">'+
+      statBox('Time asleep', fmtDur(sd.total_sleep_duration),'') +
+      statBox('Deep', fmtDur(sd.deep_sleep_duration),'') +
+      statBox('REM', fmtDur(sd.rem_sleep_duration),'') +
+      statBox('Efficiency', sd.efficiency? num(sd.efficiency,0):'--','%') +
+      statBox('Latency', sd.latency? fmtDur(sd.latency):'--','') +
+      statBox('Avg breath', sd.average_breath? num(sd.average_breath,1):'--','/min') +
+      '</div>';
+  }
+  html += detailBlock('Sleep', sScore, 'var(--sleep)', day.sleep?.contributors, ['deep_sleep','efficiency','latency','rem_sleep','restfulness','timing','total_sleep']) + sleepExtra;
+  // Detail: Activity
+  let actExtra = '';
+  if(day.activity){
+    actExtra = '<div class="stats-grid" style="margin-top:10px">'+
+      statBox('Active cal', day.activity.active_calories? Number(day.activity.active_calories).toLocaleString():'--','cal') +
+      statBox('Total cal', day.activity.total_calories? Number(day.activity.total_calories).toLocaleString():'--','cal') +
+      statBox('Distance', day.activity.equivalent_walking_distance? num(day.activity.equivalent_walking_distance/1000,1):'--','km') +
+      statBox('High act.', day.activity.high_activity_time? fmtDur(day.activity.high_activity_time):'--','') +
+      statBox('Medium act.', day.activity.medium_activity_time? fmtDur(day.activity.medium_activity_time):'--','') +
+      statBox('Sedentary', day.activity.sedentary_time? fmtDur(day.activity.sedentary_time):'--','') +
+      '</div>';
+  }
+  html += detailBlock('Activity', aScore, 'var(--activity)', day.activity?.contributors, ['meet_daily_targets','move_every_hour','recovery_time','stay_active','training_frequency','training_volume']) + actExtra;
+
+  // Other metrics (stress, resilience, cardio)
+  let others = '';
+  if(day.stress){
+    others += metricRow('Stress', (day.stress.day_summary||'--'), '', 'var(--activity)');
+  }
+  if(day.resilience){
+    others += metricRow('Resilience', day.resilience.contributors?.level || day.resilience.level || '--','', 'var(--sleep)');
+  }
+  if(day.cardio){
+    others += metricRow('Cardiovascular age', day.cardio.vascular_age? day.cardio.vascular_age+' yrs':'--','', 'var(--readiness)');
+  }
+  if(others){
+    html += '<div class="section-title">Other metrics</div><div class="card">'+others+'</div>';
+  }
+
+  el.innerHTML = html;
+
+  el.querySelectorAll('.date-pill').forEach(p=>{
+    p.addEventListener('click', ()=>{ selectedDate = p.dataset.date; renderToday(); });
+  });
+  el.querySelectorAll('.score-card').forEach(c=>{});
+}
+function scoreCard(cls, label, score, color){
+  return '<div class="score-card '+cls+'">'+
+    '<div class="ring-wrap">'+ringSVG(score,color)+'<div class="ring-num" style="color:'+(score?color:'var(--muted)')+'">'+(score||'--')+'</div></div>'+
+    '<div class="score-card-label">'+label+'</div><div class="score-val">'+scoreLabel(score)+'</div></div>';
+}
+function statBox(label, value, unit){
+  return '<div class="stat-box"><div class="stat-box-label">'+label+'</div><div class="stat-box-value">'+value+'<span class="stat-box-unit">'+unit+'</span></div></div>';
+}
+function metricRow(label, value, unit, color){
+  return '<div class="settings-row"><div><div class="s-label" style="color:'+color+'">'+label+'</div></div><div style="font-weight:800">'+value+' '+unit+'</div></div>';
+}
+function detailBlock(title, score, color, contributors, keys){
+  let bars = '';
+  if(contributors){
+    keys.forEach(k=>{
+      if(contributors[k] !== undefined) bars += contribBar(prettyKey(k), contributors[k], color);
+    });
+  }
+  return '<div class="section-title">'+title+'</div><div class="card">'+
+    '<div class="detail-header"><h3>'+title+' score</h3><span class="badge" style="background:'+(score?color+'33':'var(--surface2)')+'; color:'+(score?color:'var(--muted)')+'">'+(score||'--')+' · '+scoreLabel(score)+'</span></div>'+
+    (bars ? '<div class="sub-scores">'+bars+'</div>' : '<p style="color:var(--muted); font-size:13px; margin:6px 0 0">No breakdown data for this day.</p>')+
+    '</div>';
+}
+
+/* =========================================================
+   TRENDS VIEW
+   ========================================================= */
+const METRICS = {
+  readiness: {label:'Readiness', color:'#29d0c0', get:d=>getDay(d).readiness?.score, unit:''},
+  sleep: {label:'Sleep score', color:'#6c8bff', get:d=>getDay(d).sleep?.score, unit:''},
+  activity: {label:'Activity score', color:'#ff9f43', get:d=>getDay(d).activity?.score, unit:''},
+  steps: {label:'Steps', color:'#29d0c0', get:d=>{const a=DATA.activity[d]; return a&&a.steps? Number(a.steps):null;}, unit:''},
+  rhr: {label:'Resting HR', color:'#e74c3c', get:d=>{const hr=heartrateStatsForDay(d); if(hr) return hr.resting; const sd=sleepDetailForDay(d); return sd&&sd.average_heart_rate? Number(sd.average_heart_rate):null;}, unit:'bpm'},
+  hrv: {label:'HRV', color:'#6c8bff', get:d=>{const sd=sleepDetailForDay(d); return sd&&sd.average_hrv? Number(sd.average_hrv):null;}, unit:'ms'},
+  temp: {label:'Body temp deviation', color:'#ff9f43', get:d=>tempForDay(d), unit:'°'},
+  spo2: {label:'SpO2', color:'#29d0c0', get:d=>{const s=DATA.spo2[d]; return s&&s.spo2_percentage&&s.spo2_percentage.average? Number(s.spo2_percentage.average):null;}, unit:'%'},
+  sleepdur: {label:'Time asleep', color:'#6c8bff', get:d=>{const sd=sleepDetailForDay(d); return sd&&sd.total_sleep_duration? Number(sd.total_sleep_duration)/3600:null;}, unit:'h'}
+};
+const RANGES = [7,30,90,365,0]; // 0 = all
+
+function renderTrends(){
+  const el = document.getElementById('view-trends');
+  let html = '<div class="control-row" id="metric-chips">';
+  Object.keys(METRICS).forEach(k=>{
+    html += '<button class="chip'+(k===trendMetric?' active':'')+'" data-metric="'+k+'" style="'+(k===trendMetric?'background:'+METRICS[k].color:'')+'">'+METRICS[k].label+'</button>';
+  });
+  html += '</div>';
+  html += '<div class="control-row" id="range-chips">';
+  RANGES.forEach(r=>{
+    html += '<button class="chip'+(r===trendRange?' active':'')+'" data-range="'+r+'" style="'+(r===trendRange?'background:var(--text); color:var(--bg)':'')+'">'+(r===0?'All time':'Last '+r+'d')+'</button>';
+  });
+  html += '</div>';
+  html += '<div class="chart-wrap" id="chart-container"></div>';
+  html += '<div class="summary-row" id="summary-row"></div>';
+
+  el.innerHTML = html;
+  el.querySelectorAll('#metric-chips .chip').forEach(c=>c.addEventListener('click', ()=>{trendMetric=c.dataset.metric; renderTrends();}));
+  el.querySelectorAll('#range-chips .chip').forEach(c=>c.addEventListener('click', ()=>{trendRange=Number(c.dataset.range); renderTrends();}));
+
+  drawTrendChart();
+}
+
+function movingAvg(arr, window){
+  const out = [];
+  for(let i=0;i<arr.length;i++){
+    const start = Math.max(0,i-window+1);
+    const slice = arr.slice(start,i+1).filter(v=>v!==null);
+    out.push(slice.length ? avg(slice) : null);
+  }
+  return out;
+}
+
+function drawTrendChart(){
+  const metric = METRICS[trendMetric];
+  let dates = ALL_DATES;
+  if(trendRange>0) dates = dates.slice(Math.max(0,dates.length-trendRange));
+  const values = dates.map(d=>{
+    const v = metric.get(d);
+    return (v===null||v===undefined||isNaN(v)) ? null : Number(v);
+  });
+  const validVals = values.filter(v=>v!==null);
+  const container = document.getElementById('chart-container');
+
+  if(validVals.length===0){
+    container.innerHTML = '<div class="empty-note">No data for this metric yet.</div>';
+    document.getElementById('summary-row').innerHTML='';
+    return;
+  }
+
+  const W = Math.max(container.clientWidth || 320, 300);
+  const H = 220;
+  const padL = 34, padR = 10, padT = 14, padB = 22;
+  let yMin = Math.min(...validVals), yMax = Math.max(...validVals);
+  if(yMin===yMax){ yMin -= 1; yMax += 1; }
+  const pad = (yMax-yMin)*0.12;
+  yMin -= pad; yMax += pad;
+  if(trendMetric==='readiness'||trendMetric==='sleep'||trendMetric==='activity'){ yMin=Math.min(yMin,40); yMax=Math.max(yMax,90); }
+
+  const n = dates.length;
+  const xFor = i => padL + (n<=1?0:(i/(n-1))*(W-padL-padR));
+  const yFor = v => padT + (1-(v-yMin)/(yMax-yMin))*(H-padT-padB);
+
+  const ma = movingAvg(values, Math.min(7, Math.max(3,Math.round(n/10))));
+
+  function pathFor(arr){
+    let d = ''; let started=false;
+    arr.forEach((v,i)=>{
+      if(v===null){ started=false; return; }
+      const x=xFor(i), y=yFor(v);
+      d += (started? 'L':'M')+x+' '+y+' ';
+      started = true;
+    });
+    return d.trim();
+  }
+
+  let gridLines = '';
+  const gridCount = 4;
+  for(let g=0; g<=gridCount; g++){
+    const y = padT + (g/gridCount)*(H-padT-padB);
+    const val = yMax - (g/gridCount)*(yMax-yMin);
+    gridLines += '<line x1="'+padL+'" y1="'+y+'" x2="'+(W-padR)+'" y2="'+y+'" stroke="var(--border)" stroke-width="1"/>';
+    gridLines += '<text x="4" y="'+(y+3)+'" font-size="9.5" fill="var(--muted)">'+(Math.abs(val)>=100?Math.round(val):val.toFixed(1))+'</text>';
+  }
+
+  const pointDots = values.map((v,i)=>{
+    if(v===null) return '';
+    return '<circle class="pt" data-i="'+i+'" cx="'+xFor(i)+'" cy="'+yFor(v)+'" r="9" fill="transparent"/>';
+  }).join('');
+
+  const svg = '<svg width="100%" height="'+H+'" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" style="display:block; overflow:visible">'+
+    gridLines+
+    '<path d="'+pathFor(values)+'" fill="none" stroke="'+metric.color+'" stroke-width="2" opacity="0.9"/>'+
+    (n>10 ? '<path d="'+pathFor(ma)+'" fill="none" stroke="var(--text)" stroke-width="1.4" stroke-dasharray="4 3" opacity="0.55"/>' : '')+
+    values.map((v,i)=> v===null?'':'<circle cx="'+xFor(i)+'" cy="'+yFor(v)+'" r="2.2" fill="'+metric.color+'"/>').join('')+
+    pointDots+
+    '</svg>';
+
+  container.innerHTML = svg + '<div class="chart-legend"><span><span class="legend-dot" style="background:'+metric.color+'"></span>'+metric.label+'</span>'+(n>10?'<span><span class="legend-dot" style="background:var(--text)"></span>7-pt average</span>':'')+'</div>'+
+    '<div class="chart-tooltip" id="chart-tt"></div>';
+
+  const tt = document.getElementById('chart-tt');
+  container.querySelectorAll('.pt').forEach(pt=>{
+    pt.addEventListener('mouseenter', e=>{
+      const i = Number(pt.dataset.i);
+      tt.style.left = pt.getAttribute('cx')+'px';
+      tt.style.top = pt.getAttribute('cy')+'px';
+      tt.textContent = dates[i]+': '+values[i]+' '+metric.unit;
+      tt.style.opacity=1;
+    });
+    pt.addEventListener('mouseleave', ()=>{ tt.style.opacity=0; });
+    pt.addEventListener('touchstart', ()=>{
+      const i = Number(pt.dataset.i);
+      tt.style.left = pt.getAttribute('cx')+'px';
+      tt.style.top = pt.getAttribute('cy')+'px';
+      tt.textContent = dates[i]+': '+values[i]+' '+metric.unit;
+      tt.style.opacity=1;
+      setTimeout(()=>tt.style.opacity=0, 1500);
+    }, {passive:true});
+  });
+
+  const latest = validVals[validVals.length-1];
+  const first = validVals[0];
+  const summary = document.getElementById('summary-row');
+  summary.innerHTML =
+    summaryBox('Average', avg(validVals).toFixed(1)+' '+metric.unit) +
+    summaryBox('Best', Math.max(...validVals).toFixed(1)+' '+metric.unit) +
+    summaryBox('Change', ((latest-first)>=0?'+':'')+(latest-first).toFixed(1)+' '+metric.unit);
+}
+function summaryBox(label, val){
+  return '<div class="summary-box"><div class="lbl">'+label+'</div><div class="val">'+val+'</div></div>';
+}
+window.addEventListener('resize', ()=>{ if(currentTab==='trends') drawTrendChart(); });
+
+/* =========================================================
+   CALENDAR VIEW
+   ========================================================= */
+function renderCalendar(){
+  const el = document.getElementById('view-calendar');
+  let html = '<div class="cal-header"><button id="cal-prev">‹</button><div style="font-weight:800; font-size:16px">'+calYear+'</div><button id="cal-next">›</button></div>';
+  html += '<div class="control-row">';
+  ['readiness','sleep','activity'].forEach(k=>{
+    html += '<button class="chip'+(k===calMetric?' active':'')+'" data-cm="'+k+'" style="'+(k===calMetric?'background:'+METRICS[k].color:'')+'">'+METRICS[k].label+'</button>';
+  });
+  html += '</div>';
+  html += '<div class="cal-months-grid">';
+
+  const dow = ['S','M','T','W','T','F','S'];
+  for(let m=0;m<12;m++){
+    const first = new Date(calYear,m,1);
+    const daysInMonth = new Date(calYear,m+1,0).getDate();
+    const startDow = first.getDay();
+    html += '<div class="cal-month"><div class="cal-month-title">'+first.toLocaleDateString(undefined,{month:'long'})+'</div><div class="cal-grid">';
+    dow.forEach(d=>html+='<div class="cal-dow">'+d+'</div>');
+    for(let i=0;i<startDow;i++) html += '<div class="cal-cell empty"></div>';
+    for(let day=1; day<=daysInMonth; day++){
+      const dstr = calYear+'-'+String(m+1).padStart(2,'0')+'-'+String(day).padStart(2,'0');
+      const v = METRICS[calMetric].get(dstr);
+      const bg = v!==null&&v!==undefined ? scoreColor(v) : 'var(--surface2)';
+      const isToday = dstr === new Date().toISOString().substring(0,10);
+      html += '<div class="cal-cell'+(isToday?' today':'')+'" style="background:'+bg+(v!==null&&v!==undefined?'':';opacity:.5')+'" data-date="'+dstr+'" title="'+dstr+(v!==null&&v!==undefined?': '+v:'')+'"></div>';
+    }
+    html += '</div></div>';
+  }
+  html += '</div>';
+  html += '<div class="cal-legend">'+
+    '<span class="sw" style="background:var(--attention)"></span>Pay attention'+
+    '<span class="sw" style="background:var(--fair)"></span>Fair'+
+    '<span class="sw" style="background:var(--good)"></span>Good'+
+    '<span class="sw" style="background:var(--optimal)"></span>Optimal'+
+    '<span class="sw" style="background:var(--surface2)"></span>No data</div>';
+
+  el.innerHTML = html;
+  el.querySelectorAll('[data-cm]').forEach(c=>c.addEventListener('click', ()=>{calMetric=c.dataset.cm; renderCalendar();}));
+  document.getElementById('cal-prev').addEventListener('click', ()=>{calYear--; renderCalendar();});
+  document.getElementById('cal-next').addEventListener('click', ()=>{calYear++; renderCalendar();});
+  el.querySelectorAll('.cal-cell[data-date]').forEach(c=>{
+    c.addEventListener('click', ()=>{
+      const d = c.dataset.date;
+      if(ALL_DATES.includes(d)){
+        selectedDate = d;
+        document.querySelector('.tab-btn[data-tab="today"]').click();
+      }
+    });
+  });
+}
+
+/* =========================================================
+   INSIGHTS VIEW
+   ========================================================= */
+function pearson(xs, ys){
+  const pairs = xs.map((x,i)=>[x,ys[i]]).filter(([x,y])=>x!==null&&y!==null&&x!==undefined&&y!==undefined&&!isNaN(x)&&!isNaN(y));
+  const n = pairs.length;
+  if(n < 8) return null;
+  const xv = pairs.map(p=>p[0]), yv = pairs.map(p=>p[1]);
+  const mx = avg(xv), my = avg(yv);
+  let num=0, dx=0, dy=0;
+  for(let i=0;i<n;i++){ num += (xv[i]-mx)*(yv[i]-my); dx += (xv[i]-mx)**2; dy += (yv[i]-my)**2; }
+  if(dx===0||dy===0) return null;
+  return {r: num/Math.sqrt(dx*dy), n};
+}
+function shiftedSeries(metricFn, dates, lag){
+  // lag>0: value from `lag` days earlier
+  return dates.map((d,i)=>{
+    const idx = i-lag;
+    if(idx<0) return null;
+    return metricFn(dates[idx]);
+  });
+}
+function streakInfo(metricKey, threshold){
+  let best=0, cur=0, bestEnd=null, curStart=null;
+  ALL_DATES.forEach(d=>{
+    const v = METRICS[metricKey].get(d);
+    if(v!==null && v!==undefined && v>=threshold){
+      cur++;
+      if(cur>best){ best=cur; bestEnd=d; }
+    } else { cur=0; }
+  });
+  // current streak (trailing from most recent date backwards)
+  let curStreak=0;
+  for(let i=ALL_DATES.length-1;i>=0;i--){
+    const v = METRICS[metricKey].get(ALL_DATES[i]);
+    if(v!==null && v!==undefined && v>=threshold) curStreak++;
+    else break;
+  }
+  return {best, curStreak};
+}
+function personalBest(metricKey, mode){
+  let best=null, bestDate=null;
+  ALL_DATES.forEach(d=>{
+    const v = METRICS[metricKey].get(d);
+    if(v===null||v===undefined||isNaN(v)) return;
+    if(best===null || (mode==='max'? v>best : v<best)){ best=v; bestDate=d; }
+  });
+  return {value:best, date:bestDate};
+}
+
+function renderInsights(){
+  const el = document.getElementById('view-insights');
+  if(ALL_DATES.length < 10){
+    el.innerHTML = '<div class="empty-note">Import a bit more data (at least ~10 days) to unlock trend insights, streaks and correlations.</div>';
+    return;
+  }
+  let cards = [];
+
+  // Streaks
+  ['readiness','sleep','activity'].forEach(k=>{
+    const s = streakInfo(k,70);
+    if(s.best>=3){
+      cards.push({icon:'🔥', color:METRICS[k].color, title:METRICS[k].label+' streak', body:'Your longest streak of '+METRICS[k].label.toLowerCase()+' ≥70 is '+s.best+' day'+(s.best===1?'':'s')+'.'+(s.curStreak>0?' You\'re currently on a '+s.curStreak+'-day streak.':'')});
+    }
+  });
+
+  // Personal bests
+  const pbSteps = personalBest('steps','max');
+  if(pbSteps.value) cards.push({icon:'👟', color:'var(--activity)', title:'Most steps in a day', body:pbSteps.value.toLocaleString()+' steps on '+fmtDateFull(pbSteps.date)+'.'});
+  const pbHRV = personalBest('hrv','max');
+  if(pbHRV.value) cards.push({icon:'💚', color:'var(--sleep)', title:'Highest HRV', body:pbHRV.value.toFixed(0)+' ms on '+fmtDateFull(pbHRV.date)+'.'});
+  const pbRHR = personalBest('rhr','min');
+  if(pbRHR.value) cards.push({icon:'❤️', color:'var(--readiness)', title:'Lowest resting heart rate', body:pbRHR.value.toFixed(0)+' bpm on '+fmtDateFull(pbRHR.date)+'.'});
+  const pbSleep = personalBest('sleepdur','max');
+  if(pbSleep.value) cards.push({icon:'🛌', color:'var(--sleep)', title:'Longest sleep', body:pbSleep.value.toFixed(1)+'h on '+fmtDateFull(pbSleep.date)+'.'});
+
+  // Correlations: same-day and next-day
+  function addCorr(labelA, labelB, r, extra){
+    if(!r) return;
+    const strength = Math.abs(r.r) >= 0.5 ? 'a strong' : Math.abs(r.r) >= 0.3 ? 'a moderate' : null;
+    if(!strength) return;
+    const dir = r.r > 0 ? 'more' : 'less';
+    cards.push({icon: r.r>0?'📈':'📉', color: r.r>0?'var(--good)':'var(--attention)',
+      title: labelA+' → '+labelB,
+      body: 'Found '+strength+' relationship (r='+r.r.toFixed(2)+', n='+r.n+' days): '+extra});
+  }
+
+  const stepsToday = ALL_DATES.map(d=>METRICS.steps.get(d));
+  const readinessNext = shiftedSeries(METRICS.readiness.get, ALL_DATES, -1);
+  addCorr('Daily steps', 'next-day readiness', pearson(stepsToday, readinessNext), 'more steps tend to come with '+(pearson(stepsToday,readinessNext)?.r>0?'higher':'lower')+' readiness the next day.');
+
+  const sleepScore = ALL_DATES.map(d=>METRICS.sleep.get(d));
+  const activityNext = shiftedSeries(METRICS.activity.get, ALL_DATES, -1);
+  addCorr('Sleep score', 'next-day activity', pearson(sleepScore, activityNext), 'better sleep tends to line up with '+(pearson(sleepScore,activityNext)?.r>0?'more':'less')+' activity the next day.');
+
+  const activityToday = ALL_DATES.map(d=>METRICS.activity.get(d));
+  const sleepNext = shiftedSeries(METRICS.sleep.get, ALL_DATES, -1);
+  addCorr('Activity score', 'next-night sleep', pearson(activityToday, sleepNext), 'your activity level tends to be followed by '+(pearson(activityToday,sleepNext)?.r>0?'better':'worse')+' sleep that night.');
+
+  const hrvSeries = ALL_DATES.map(d=>METRICS.hrv.get(d));
+  const readinessSame = ALL_DATES.map(d=>METRICS.readiness.get(d));
+  addCorr('HRV', 'same-day readiness', pearson(hrvSeries, readinessSame), 'HRV moves closely with your readiness score.');
+
+  // Journal tag insights
+  const tagDates = Object.keys(JOURNAL).filter(d=>JOURNAL[d]?.tags?.length);
+  if(tagDates.length >= 4){
+    const allTags = new Set();
+    tagDates.forEach(d=>JOURNAL[d].tags.forEach(t=>allTags.add(t)));
+    allTags.forEach(tag=>{
+      ['readiness','sleep','activity'].forEach(mk=>{
+        const withTag = [], withoutTag = [];
+        ALL_DATES.forEach(d=>{
+          const v = METRICS[mk].get(d);
+          if(v===null||v===undefined) return;
+          const has = JOURNAL[d]?.tags?.includes(tag);
+          if(has) withTag.push(v); else withoutTag.push(v);
+        });
+        if(withTag.length>=3 && withoutTag.length>=3){
+          const diff = avg(withTag) - avg(withoutTag);
+          if(Math.abs(diff) >= 3){
+            cards.push({icon:'🏷️', color:'var(--sleep)', title:'"'+tag+'" and '+METRICS[mk].label.toLowerCase(),
+              body:'On days tagged "'+tag+'", your average '+METRICS[mk].label.toLowerCase()+' was '+avg(withTag).toFixed(0)+' vs '+avg(withoutTag).toFixed(0)+' on other days ('+(diff>0?'+':'')+diff.toFixed(0)+').'});
+          }
+        }
+      });
+    });
+  }
+
+  if(cards.length===0){
+    el.innerHTML = '<div class="empty-note">No strong patterns found yet — check back after logging more data, or add tags in the Journal tab to surface personal correlations.</div>';
+    return;
+  }
+  el.innerHTML = cards.map(c=>
+    '<div class="card insight-card"><div class="insight-icon" style="background:'+c.color+'22">'+c.icon+'</div><div class="insight-body"><h4>'+c.title+'</h4><p>'+c.body+'</p></div></div>'
+  ).join('');
+}
+
+/* =========================================================
+   JOURNAL VIEW
+   ========================================================= */
+const JOURNAL_TAGS = ['Alcohol','Late meal','Workout','Travel','Illness','High stress','Screen before bed','Caffeine late','Great day'];
+
+function renderJournal(){
+  const el = document.getElementById('view-journal');
+  const entry = JOURNAL[selectedDate] || {tags:[], note:''};
+  let html = '<div class="date-nav" id="j-date-nav">';
+  const idx = ALL_DATES.indexOf(selectedDate);
+  const windowDates = ALL_DATES.slice(Math.max(0,idx-6), idx+1);
+  windowDates.forEach(d=>{
+    const dt = new Date(d+'T12:00:00');
+    html += '<div class="date-pill'+(d===selectedDate?' active':'')+'" data-date="'+d+'"><div class="pill-dow">'+dt.toLocaleDateString(undefined,{weekday:'short'})+'</div><div class="pill-dom">'+dt.getDate()+'</div></div>';
+  });
+  html += '</div>';
+  html += '<div class="dash-date-full">'+fmtDateFull(selectedDate)+'</div>';
+  html += '<div class="section-title">Tags</div><div class="tag-grid" id="tag-grid">';
+  JOURNAL_TAGS.forEach(t=>{
+    html += '<div class="tag-chip'+(entry.tags.includes(t)?' on':'')+'" data-tag="'+t+'">'+t+'</div>';
+  });
+  html += '</div>';
+  html += '<div class="section-title">Notes</div><textarea class="journal-note" id="journal-note" placeholder="Anything worth remembering about today...">'+(entry.note||'')+'</textarea>';
+
+  const history = Object.keys(JOURNAL).filter(d=>JOURNAL[d]?.tags?.length || JOURNAL[d]?.note).sort().reverse().slice(0,20);
+  if(history.length){
+    html += '<div class="section-title">Recent entries</div><div class="journal-history">';
+    history.forEach(d=>{
+      const e = JOURNAL[d];
+      html += '<div class="journal-hist-item" data-date="'+d+'"><div class="jh-date">'+fmtDateFull(d)+'</div>'+(e.tags.length?'<div class="jh-tags">'+e.tags.join(' · ')+'</div>':'')+(e.note?'<div style="margin-top:4px">'+escapeHtml(e.note)+'</div>':'')+'</div>';
+    });
+    html += '</div>';
+  }
+
+  el.innerHTML = html;
+  el.querySelectorAll('#j-date-nav .date-pill').forEach(p=>p.addEventListener('click', ()=>{selectedDate=p.dataset.date; renderJournal();}));
+  el.querySelectorAll('.tag-chip').forEach(chip=>{
+    chip.addEventListener('click', ()=>{
+      if(!JOURNAL[selectedDate]) JOURNAL[selectedDate] = {tags:[], note:''};
+      const tag = chip.dataset.tag;
+      const i = JOURNAL[selectedDate].tags.indexOf(tag);
+      if(i>=0) JOURNAL[selectedDate].tags.splice(i,1); else JOURNAL[selectedDate].tags.push(tag);
+      persistJournal();
+      chip.classList.toggle('on');
+    });
+  });
+  document.getElementById('journal-note').addEventListener('input', e=>{
+    if(!JOURNAL[selectedDate]) JOURNAL[selectedDate] = {tags:[], note:''};
+    JOURNAL[selectedDate].note = e.target.value;
+    persistJournal();
+  });
+  el.querySelectorAll('.journal-hist-item').forEach(item=>{
+    item.addEventListener('click', ()=>{ selectedDate = item.dataset.date; renderJournal(); });
+  });
+}
+function escapeHtml(s){
+  const d = document.createElement('div'); d.textContent = s; return d.innerHTML;
+}
+
+/* =========================================================
+   DATA / SETTINGS VIEW
+   ========================================================= */
+function renderData(){
+  const el = document.getElementById('view-data');
+  const first = ALL_DATES[0], last = ALL_DATES[ALL_DATES.length-1];
+  let html = '<div class="card">';
+  html += '<div class="loaded-range">Loaded: <strong>'+ALL_DATES.length+'</strong> days, from '+first+' to '+last+'</div>';
+  html += '<div class="settings-row"><div><div class="s-label">Add more data</div><div class="s-desc">Import additional exports — new dates merge in, existing dates get updated.</div></div><button class="btn primary" id="add-more-btn">Import CSVs</button></div>';
+  html += '<input type="file" id="more-file-input" multiple accept=".csv" style="display:none">';
+  html += '<div class="settings-row"><div><div class="s-label">Export backup</div><div class="s-desc">Save everything (data + journal) as one JSON file you control.</div></div><button class="btn" id="export-btn">Export JSON</button></div>';
+  html += '<div class="settings-row"><div><div class="s-label">Restore backup</div><div class="s-desc">Load a previously exported JSON backup.</div></div><button class="btn" id="import-json-btn">Import JSON</button></div>';
+  html += '<input type="file" id="import-json-input" accept=".json" style="display:none">';
+  html += '<div class="settings-row"><div><div class="s-label">Clear all data</div><div class="s-desc">Removes everything stored in this browser. Cannot be undone.</div></div><button class="btn danger" id="clear-btn">Clear</button></div>';
+  html += '</div>';
+  html += '<div class="privacy-note" style="margin-top:16px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2l8 4v6c0 5.2-3.4 9.4-8 10.5C7.4 21.4 4 17.2 4 12V6l8-4z" stroke="currentColor" stroke-width="2"/></svg><div>All of this lives in this browser\'s local storage on this device only. Clearing your browser data, or using a different browser/device, means starting fresh unless you\'ve exported a backup.</div></div>';
+
+  el.innerHTML = html;
+
+  document.getElementById('add-more-btn').addEventListener('click', ()=>document.getElementById('more-file-input').click());
+  document.getElementById('more-file-input').addEventListener('change', async e=>{
+    await handleFiles(Array.from(e.target.files));
+    recomputeDates();
+    renderData();
+    alert('Imported. Data now spans '+ALL_DATES[0]+' to '+ALL_DATES[ALL_DATES.length-1]+'.');
+  });
+  document.getElementById('export-btn').addEventListener('click', exportBackup);
+  document.getElementById('import-json-btn').addEventListener('click', ()=>document.getElementById('import-json-input').click());
+  document.getElementById('import-json-input').addEventListener('change', importBackup);
+  document.getElementById('clear-btn').addEventListener('click', ()=>{
+    if(confirm('This permanently deletes all imported Oura data and journal entries from this browser. Continue?')){
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(JOURNAL_KEY);
+      location.reload();
+    }
+  });
+}
+
+function exportBackup(){
+  const payload = {version:1, exportedAt:new Date().toISOString(), data:DATA, journal:JOURNAL};
+  const blob = new Blob([JSON.stringify(payload)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'rings-oura-backup-'+new Date().toISOString().substring(0,10)+'.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+}
+async function importBackup(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  try{
+    const text = await file.text();
+    const payload = JSON.parse(text);
+    if(!payload.data) throw new Error('bad format');
+    DATA = Object.assign({activity:{},readiness:{},sleep:{},sleepdetail:{},spo2:{},stress:{},resilience:{},cardio:{},heartrate:{},temperature:{}}, payload.data);
+    JOURNAL = payload.journal || {};
+    persistData(); persistJournal();
+    recomputeDates();
+    renderData();
+    alert('Backup restored: '+ALL_DATES.length+' days loaded.');
+  }catch(err){
+    alert('Could not read that file — is it a Rings backup JSON?');
+  }
+}
+
+/* Register service worker for offline use */
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  });
+}
+</script>
+</body>
+</html>
