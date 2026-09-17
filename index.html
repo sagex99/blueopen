@@ -73,8 +73,35 @@ a{color:inherit;}
 }
 .tab-btn.active{background:var(--surface2); color:var(--text); border-color:var(--border);}
 
-.view{padding:16px; max-width:900px; margin:0 auto; animation:fade .25s ease;}
+.view{padding:16px; max-width:1040px; margin:0 auto; animation:fade .25s ease;}
 @keyframes fade{from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:translateY(0);}}
+
+/* Desktop two-column Today layout */
+.today-grid{display:block;}
+.today-col-left, .today-col-right{display:block; min-width:0;}
+@media (min-width:860px){
+  .today-grid{display:grid; grid-template-columns:360px 1fr; gap:20px; align-items:start;}
+  .today-col-left{position:sticky; top:calc(53px + 46px + env(safe-area-inset-top) + 16px);}
+}
+
+/* Week snapshot card */
+.week-card{margin-bottom:16px;}
+.week-card-title{font-size:13px; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; margin-bottom:10px;}
+.week-row{display:flex; align-items:center; gap:10px; padding:8px 0; border-top:1px solid var(--border);}
+.week-row:first-of-type{border-top:none; padding-top:0;}
+.week-row-label{font-size:12.5px; font-weight:700; width:64px; flex:0 0 auto;}
+.week-row-spark{flex:1; min-width:0;}
+.week-row-val{font-size:14px; font-weight:800; text-align:right; width:64px; flex:0 0 auto; display:flex; align-items:baseline; justify-content:flex-end; gap:5px;}
+.delta{font-size:11px; font-weight:800; padding:1px 5px; border-radius:6px;}
+.delta.up{color:var(--good); background:rgba(46,204,113,0.12);}
+.delta.down{color:var(--attention); background:rgba(231,76,60,0.12);}
+.delta.flat{color:var(--muted); background:var(--surface2);}
+
+/* Trend badge on score rings */
+.ring-trend{font-size:10.5px; font-weight:800; margin-top:3px; display:flex; align-items:center; justify-content:center; gap:2px;}
+.ring-trend.up{color:var(--good);}
+.ring-trend.down{color:var(--attention);}
+.ring-trend.flat{color:var(--muted);}
 
 /* ---------- Upload / empty state ---------- */
 #upload-screen{max-width:640px; margin:0 auto; padding:28px 16px 60px;}
@@ -277,7 +304,7 @@ textarea.journal-note{
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2l8 4v6c0 5.2-3.4 9.4-8 10.5C7.4 21.4 4 17.2 4 12V6l8-4z" stroke="currentColor" stroke-width="2"/><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
     <div>Everything happens in this browser tab. Files are parsed on your device and saved only to this browser's local storage — nothing is uploaded, and there's no login. Add this page to your home screen for an app-like, offline experience.</div>
   </div>
-  <div class="export-help">Don't have your CSVs yet? Get them from <a href="https://cloud.ouraring.com/export" target="_blank" rel="noopener">cloud.ouraring.com/export</a></div>
+  <div class="export-help">Don't have your CSVs yet? Log in at <a href="https://membership.ouraring.com" target="_blank" rel="noopener">membership.ouraring.com</a> → Export data → Request your data (works without a paid membership, but can take up to 10 days to arrive by email)</div>
 </div>
 
 <div id="app" class="hidden">
@@ -448,14 +475,14 @@ async function handleFiles(files){
     const btn = document.getElementById('generate-btn');
     if(Object.keys(loadedFiles).length >= 1) btn.classList.add('ready');
   } else {
-    alert("Those files weren't recognized as Oura export CSVs. Try the files exactly as they came from cloud.ouraring.com/export.");
+    alert("Those files weren't recognized as Oura export CSVs. Try the files exactly as they came from membership.ouraring.com.");
   }
 }
 
 /* =========================================================
    DERIVED DAY RECORD
    ========================================================= */
-function avg(arr){ return arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : null; }
+function avg(arr){ return arr.length ? arr.reduce((a,b)=>a+Number(b),0)/arr.length : null; }
 
 function heartrateStatsForDay(d){
   const recs = DATA.heartrate[d];
@@ -646,34 +673,40 @@ function renderToday(){
   const startIdx = Math.max(0, idx-6);
   const windowDates = ALL_DATES.slice(startIdx, idx+1);
 
-  let html = '<div class="date-nav" id="date-nav">';
+  let left = '<div class="date-nav" id="date-nav">';
   windowDates.forEach(d=>{
     const dt = new Date(d+'T12:00:00');
     const active = d===selectedDate ? ' active' : '';
-    html += '<div class="date-pill'+active+'" data-date="'+d+'">'+
+    left += '<div class="date-pill'+active+'" data-date="'+d+'">'+
       '<div class="pill-dow">'+dt.toLocaleDateString(undefined,{weekday:'short'})+'</div>'+
       '<div class="pill-dom">'+dt.getDate()+'</div></div>';
   });
-  html += '</div>';
-  html += '<div class="dash-date-full">'+fmtDateFull(selectedDate)+'</div>';
+  left += '</div>';
+  left += '<div class="dash-date-full">'+fmtDateFull(selectedDate)+'</div>';
 
   const day = getDay(selectedDate);
   const rScore = day.readiness?.score, sScore = day.sleep?.score, aScore = day.activity?.score;
 
-  html += '<div class="score-section">'+scoreCard('readiness','Readiness',rScore,'var(--readiness)')+scoreCard('sleep','Sleep',sScore,'var(--sleep)')+scoreCard('activity','Activity',aScore,'var(--activity)')+'</div>';
+  left += weekSummaryCard();
+
+  left += '<div class="score-section">'+
+    scoreCard('readiness','Readiness',rScore,'var(--readiness)')+
+    scoreCard('sleep','Sleep',sScore,'var(--sleep)')+
+    scoreCard('activity','Activity',aScore,'var(--activity)')+'</div>';
 
   // Quick stats
-  html += '<div class="stats-grid">';
-  html += statBox('Steps', day.activity?.steps ? Number(day.activity.steps).toLocaleString() : '--','');
-  html += statBox('Resting HR', day.hr ? num(day.hr.resting,0) : (day.sleepdetail?.average_heart_rate ? num(day.sleepdetail.average_heart_rate,0):'--'),'bpm');
-  html += statBox('HRV', day.sleepdetail?.average_hrv ? num(day.sleepdetail.average_hrv,0) : '--','ms');
-  html += statBox('Body temp', day.temp!==null ? ((day.temp>=0?'+':'')+num(day.temp,2)) : (day.sleep?.contributors?.body_temperature? '--':'--'),'°');
-  html += statBox('SpO2', day.spo2?.spo2_percentage?.average ? num(day.spo2.spo2_percentage.average,1):'--','%');
-  html += statBox('Sleep time', day.sleepdetail?.total_sleep_duration ? fmtDur(day.sleepdetail.total_sleep_duration) : '--','');
-  html += '</div>';
+  left += '<div class="stats-grid">';
+  left += statBox('Steps', day.activity?.steps ? Number(day.activity.steps).toLocaleString() : '--','');
+  left += statBox('Resting HR', day.hr ? num(day.hr.resting,0) : (day.sleepdetail?.average_heart_rate ? num(day.sleepdetail.average_heart_rate,0):'--'),'bpm');
+  left += statBox('HRV', day.sleepdetail?.average_hrv ? num(day.sleepdetail.average_hrv,0) : '--','ms');
+  left += statBox('Body temp', day.temp!==null ? ((day.temp>=0?'+':'')+num(day.temp,2)) : (day.sleep?.contributors?.body_temperature? '--':'--'),'°');
+  left += statBox('SpO2', day.spo2?.spo2_percentage?.average ? num(day.spo2.spo2_percentage.average,1):'--','%');
+  left += statBox('Sleep time', day.sleepdetail?.total_sleep_duration ? fmtDur(day.sleepdetail.total_sleep_duration) : '--','');
+  left += '</div>';
 
+  let right = '';
   // Detail: Readiness
-  html += detailBlock('Readiness', rScore, 'var(--readiness)', day.readiness?.contributors, ['activity_balance','body_temperature','hrv_balance','previous_day_activity','previous_night','recovery_index','resting_heart_rate','sleep_balance','sleep_regularity']);
+  right += detailBlock('Readiness', rScore, 'var(--readiness)', day.readiness?.contributors, ['activity_balance','body_temperature','hrv_balance','previous_day_activity','previous_night','recovery_index','resting_heart_rate','sleep_balance','sleep_regularity']);
   // Detail: Sleep
   let sleepExtra = '';
   if(day.sleepdetail){
@@ -687,7 +720,7 @@ function renderToday(){
       statBox('Avg breath', sd.average_breath? num(sd.average_breath,1):'--','/min') +
       '</div>';
   }
-  html += detailBlock('Sleep', sScore, 'var(--sleep)', day.sleep?.contributors, ['deep_sleep','efficiency','latency','rem_sleep','restfulness','timing','total_sleep']) + sleepExtra;
+  right += detailBlock('Sleep', sScore, 'var(--sleep)', day.sleep?.contributors, ['deep_sleep','efficiency','latency','rem_sleep','restfulness','timing','total_sleep']) + sleepExtra;
   // Detail: Activity
   let actExtra = '';
   if(day.activity){
@@ -700,7 +733,7 @@ function renderToday(){
       statBox('Sedentary', day.activity.sedentary_time? fmtDur(day.activity.sedentary_time):'--','') +
       '</div>';
   }
-  html += detailBlock('Activity', aScore, 'var(--activity)', day.activity?.contributors, ['meet_daily_targets','move_every_hour','recovery_time','stay_active','training_frequency','training_volume']) + actExtra;
+  right += detailBlock('Activity', aScore, 'var(--activity)', day.activity?.contributors, ['meet_daily_targets','move_every_hour','recovery_time','stay_active','training_frequency','training_volume']) + actExtra;
 
   // Other metrics (stress, resilience, cardio)
   let others = '';
@@ -714,20 +747,91 @@ function renderToday(){
     others += metricRow('Cardiovascular age', day.cardio.vascular_age? day.cardio.vascular_age+' yrs':'--','', 'var(--readiness)');
   }
   if(others){
-    html += '<div class="section-title">Other metrics</div><div class="card">'+others+'</div>';
+    right += '<div class="section-title">Other metrics</div><div class="card">'+others+'</div>';
   }
 
-  el.innerHTML = html;
+  el.innerHTML = '<div class="today-grid"><div class="today-col-left">'+left+'</div><div class="today-col-right">'+right+'</div></div>';
 
   el.querySelectorAll('.date-pill').forEach(p=>{
     p.addEventListener('click', ()=>{ selectedDate = p.dataset.date; renderToday(); });
   });
-  el.querySelectorAll('.score-card').forEach(c=>{});
+}
+
+/* Small inline sparkline: values -> SVG polyline, null-safe */
+function sparklineSVG(values, color, w, h){
+  w=w||90; h=h||24;
+  const valid = values.filter(v=>v!==null&&v!==undefined&&!isNaN(v));
+  if(valid.length<2) return '<svg width="'+w+'" height="'+h+'" viewBox="0 0 '+w+' '+h+'"></svg>';
+  const min = Math.min(...valid), max = Math.max(...valid);
+  const range = (max-min)||1;
+  const n = values.length;
+  const pts = [];
+  values.forEach((v,i)=>{
+    if(v===null||v===undefined||isNaN(v)) return;
+    const x = (n<=1?0:(i/(n-1))*w);
+    const y = h - ((v-min)/range)*h*0.85 - h*0.075;
+    pts.push([x,y]);
+  });
+  const path = pts.map((p,i)=>(i===0?'M':'L')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ');
+  const last = pts[pts.length-1];
+  return '<svg width="'+w+'" height="'+h+'" viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="none">'+
+    '<path d="'+path+'" fill="none" stroke="'+color+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'+
+    '<circle cx="'+last[0].toFixed(1)+'" cy="'+last[1].toFixed(1)+'" r="2.4" fill="'+color+'"/>'+
+    '</svg>';
+}
+
+/* Average of a metric over `days` ending at (and including) `endDate` */
+function windowAvg(metricKey, endDate, days){
+  const idx = ALL_DATES.indexOf(endDate);
+  if(idx<0) return null;
+  const start = Math.max(0, idx-days+1);
+  const dates = ALL_DATES.slice(start, idx+1);
+  const vals = dates.map(d=>METRICS[metricKey].get(d)).filter(v=>v!==null&&v!==undefined&&!isNaN(v));
+  return vals.length ? avg(vals) : null;
+}
+function deltaBadge(delta, decimals){
+  if(delta===null||delta===undefined||isNaN(delta)) return '<span class="delta flat">--</span>';
+  const d = Number(delta);
+  const cls = d>=1 ? 'up' : d<=-1 ? 'down' : 'flat';
+  const arrow = d>=1?'▲':d<=-1?'▼':'–';
+  return '<span class="delta '+cls+'">'+arrow+' '+(d>0?'+':'')+d.toFixed(decimals===undefined?0:decimals)+'</span>';
+}
+function weekSummaryCard(){
+  const idx = ALL_DATES.indexOf(selectedDate);
+  if(idx < 3) return '';
+  const rows = ['readiness','sleep','activity'].map(k=>{
+    const startIdx = Math.max(0, idx-6);
+    const dates = ALL_DATES.slice(startIdx, idx+1);
+    const vals = dates.map(d=>METRICS[k].get(d));
+    const thisWeek = windowAvg(k, selectedDate, 7);
+    const prevEndIdx = idx-7;
+    const prevEndDate = prevEndIdx>=0 ? ALL_DATES[prevEndIdx] : null;
+    const lastWeek = prevEndDate ? windowAvg(k, prevEndDate, 7) : null;
+    const delta = (thisWeek!==null && lastWeek!==null) ? thisWeek-lastWeek : null;
+    return '<div class="week-row">'+
+      '<div class="week-row-label" style="color:'+METRICS[k].color+'">'+METRICS[k].label.replace(' score','')+'</div>'+
+      '<div class="week-row-spark">'+sparklineSVG(vals, METRICS[k].color)+'</div>'+
+      '<div class="week-row-val">'+(thisWeek!==null?Math.round(thisWeek):'--')+deltaBadge(delta,0)+'</div>'+
+      '</div>';
+  }).join('');
+  return '<div class="card week-card"><div class="week-card-title">This week vs last week</div>'+rows+'</div>';
+}
+function trendBadge(metricKey, endDate){
+  const today = METRICS[metricKey].get(endDate);
+  const idx = ALL_DATES.indexOf(endDate);
+  if(today===null||today===undefined||idx<1) return '';
+  const priorAvg = windowAvg(metricKey, ALL_DATES[idx-1], 7);
+  if(priorAvg===null) return '';
+  const diff = today-priorAvg;
+  const cls = diff>=2?'up':diff<=-2?'down':'flat';
+  const arrow = diff>=2?'▲':diff<=-2?'▼':'–';
+  return '<div class="ring-trend '+cls+'">'+arrow+' vs your avg</div>';
 }
 function scoreCard(cls, label, score, color){
   return '<div class="score-card '+cls+'">'+
     '<div class="ring-wrap">'+ringSVG(score,color)+'<div class="ring-num" style="color:'+(score?color:'var(--muted)')+'">'+(score||'--')+'</div></div>'+
-    '<div class="score-card-label">'+label+'</div><div class="score-val">'+scoreLabel(score)+'</div></div>';
+    '<div class="score-card-label">'+label+'</div><div class="score-val">'+scoreLabel(score)+'</div>'+
+    trendBadge(cls, selectedDate)+'</div>';
 }
 function statBox(label, value, unit){
   return '<div class="stat-box"><div class="stat-box-label">'+label+'</div><div class="stat-box-value">'+value+'<span class="stat-box-unit">'+unit+'</span></div></div>';
@@ -752,9 +856,9 @@ function detailBlock(title, score, color, contributors, keys){
    TRENDS VIEW
    ========================================================= */
 const METRICS = {
-  readiness: {label:'Readiness', color:'#29d0c0', get:d=>getDay(d).readiness?.score, unit:''},
-  sleep: {label:'Sleep score', color:'#6c8bff', get:d=>getDay(d).sleep?.score, unit:''},
-  activity: {label:'Activity score', color:'#ff9f43', get:d=>getDay(d).activity?.score, unit:''},
+  readiness: {label:'Readiness', color:'#29d0c0', get:d=>{const v=getDay(d).readiness?.score; return v===undefined||v===null||v===''?null:Number(v);}, unit:''},
+  sleep: {label:'Sleep score', color:'#6c8bff', get:d=>{const v=getDay(d).sleep?.score; return v===undefined||v===null||v===''?null:Number(v);}, unit:''},
+  activity: {label:'Activity score', color:'#ff9f43', get:d=>{const v=getDay(d).activity?.score; return v===undefined||v===null||v===''?null:Number(v);}, unit:''},
   steps: {label:'Steps', color:'#29d0c0', get:d=>{const a=DATA.activity[d]; return a&&a.steps? Number(a.steps):null;}, unit:''},
   rhr: {label:'Resting HR', color:'#e74c3c', get:d=>{const hr=heartrateStatsForDay(d); if(hr) return hr.resting; const sd=sleepDetailForDay(d); return sd&&sd.average_heart_rate? Number(sd.average_heart_rate):null;}, unit:'bpm'},
   hrv: {label:'HRV', color:'#6c8bff', get:d=>{const sd=sleepDetailForDay(d); return sd&&sd.average_hrv? Number(sd.average_hrv):null;}, unit:'ms'},
@@ -1078,13 +1182,74 @@ function renderInsights(){
     });
   }
 
+  // Day-of-week patterns
+  ['readiness','sleep','activity'].forEach(k=>{
+    const buckets = [[],[],[],[],[],[],[]]; // Sun..Sat
+    ALL_DATES.forEach(d=>{
+      const v = METRICS[k].get(d);
+      if(v===null||v===undefined) return;
+      buckets[new Date(d+'T12:00:00').getDay()].push(v);
+    });
+    const dowNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const means = buckets.map((b,i)=>({day:dowNames[i], avg: b.length>=3 ? avg(b) : null, n:b.length}));
+    const valid = means.filter(m=>m.avg!==null);
+    if(valid.length>=5){
+      const best = valid.reduce((a,b)=>b.avg>a.avg?b:a);
+      const worst = valid.reduce((a,b)=>b.avg<a.avg?b:a);
+      if(best.avg - worst.avg >= 5){
+        cards.push({icon:'📅', color:METRICS[k].color, title:METRICS[k].label+' by day of week',
+          body:'Your '+METRICS[k].label.toLowerCase()+' tends to be highest on '+best.day+'s (avg '+best.avg.toFixed(0)+') and lowest on '+worst.day+'s (avg '+worst.avg.toFixed(0)+').'});
+      }
+    }
+  });
+
+  // Stress category vs next-day readiness
+  if(Object.keys(DATA.stress).length >= 8){
+    const byCat = {};
+    ALL_DATES.forEach((d,i)=>{
+      const cat = DATA.stress[d]?.day_summary;
+      if(!cat) return;
+      const nextDate = ALL_DATES[i+1];
+      const nextReadiness = nextDate ? METRICS.readiness.get(nextDate) : null;
+      if(nextReadiness===null||nextReadiness===undefined) return;
+      (byCat[cat] = byCat[cat] || []).push(nextReadiness);
+    });
+    const cats = Object.keys(byCat).filter(c=>byCat[c].length>=3);
+    if(cats.length>=2){
+      const catAvgs = cats.map(c=>({cat:c, avg:avg(byCat[c]), n:byCat[c].length}));
+      const best = catAvgs.reduce((a,b)=>b.avg>a.avg?b:a);
+      const worst = catAvgs.reduce((a,b)=>b.avg<a.avg?b:a);
+      if(best.avg - worst.avg >= 4){
+        cards.push({icon:'🧘', color:'var(--activity)', title:'Stress and next-day readiness',
+          body:'Days you logged as "'+worst.cat+'" were followed by a lower average readiness ('+worst.avg.toFixed(0)+') than "'+best.cat+'" days ('+best.avg.toFixed(0)+').'});
+      }
+    }
+  }
+
   if(cards.length===0){
-    el.innerHTML = '<div class="empty-note">No strong patterns found yet — check back after logging more data, or add tags in the Journal tab to surface personal correlations.</div>';
+    el.innerHTML = weekOverWeekSummary() + '<div class="empty-note">No strong patterns found yet — check back after logging more data, or add tags in the Journal tab to surface personal correlations.</div>';
     return;
   }
-  el.innerHTML = cards.map(c=>
+  el.innerHTML = weekOverWeekSummary() + cards.map(c=>
     '<div class="card insight-card"><div class="insight-icon" style="background:'+c.color+'22">'+c.icon+'</div><div class="insight-body"><h4>'+c.title+'</h4><p>'+c.body+'</p></div></div>'
   ).join('');
+}
+
+/* "This week vs last week" numeric summary, reused atop Insights */
+function weekOverWeekSummary(){
+  if(ALL_DATES.length < 3) return '';
+  const rows = ['readiness','sleep','activity','steps','rhr','hrv'].map(k=>{
+    const thisWeek = windowAvg(k, selectedDate, 7);
+    const idx = ALL_DATES.indexOf(selectedDate);
+    const prevEndDate = (idx-7>=0) ? ALL_DATES[idx-7] : null;
+    const lastWeek = prevEndDate ? windowAvg(k, prevEndDate, 7) : null;
+    if(thisWeek===null) return '';
+    const delta = (thisWeek!==null && lastWeek!==null) ? thisWeek-lastWeek : null;
+    return '<div class="summary-box"><div class="lbl">'+METRICS[k].label.replace(' score','')+'</div><div class="val">'+
+      (Math.abs(thisWeek)>=10?Math.round(thisWeek):thisWeek.toFixed(1))+'</div>'+deltaBadge(delta,1)+'</div>';
+  }).join('');
+  if(!rows.trim()) return '';
+  return '<div class="section-title">This week vs last week</div><div class="summary-row" style="grid-template-columns:repeat(3,1fr); margin-bottom:20px">'+rows+'</div>';
 }
 
 /* =========================================================
