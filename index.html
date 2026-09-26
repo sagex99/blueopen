@@ -73,6 +73,26 @@ a{color:inherit;}
 }
 .tab-btn.active{background:var(--surface2); color:var(--text); border-color:var(--border);}
 
+/* Bottom tab bar — native app feel on phones; desktop keeps the top tabbar */
+.bottom-nav{display:none;}
+@media (max-width:760px){
+  .tabbar{display:none;}
+  .bottom-nav{
+    display:flex; position:fixed; left:0; right:0; bottom:0; z-index:60;
+    background:color-mix(in srgb, var(--bg) 92%, transparent);
+    backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
+    border-top:1px solid var(--border);
+    padding:6px 4px calc(6px + env(safe-area-inset-bottom));
+  }
+  .bottom-nav-btn{
+    flex:1; display:flex; flex-direction:column; align-items:center; gap:2px;
+    background:none; border:none; color:var(--muted); font-size:10px; font-weight:700; padding:6px 2px; cursor:pointer;
+  }
+  .bottom-nav-btn svg{width:22px; height:22px;}
+  .bottom-nav-btn.active{color:var(--readiness);}
+  body{padding-bottom:calc(58px + env(safe-area-inset-bottom));}
+}
+
 .view{padding:16px; max-width:1040px; margin:0 auto; animation:fade .25s ease;}
 @keyframes fade{from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:translateY(0);}}
 
@@ -159,19 +179,26 @@ a{color:inherit;}
 .dash-date-full{font-size:14px; color:var(--muted); margin:2px 0 16px; font-weight:600;}
 
 /* Score rings */
-.score-section{display:grid; grid-template-columns:repeat(3,1fr); gap:10px;}
-.score-card{
-  background:var(--surface); border:1px solid var(--border); border-radius:18px; padding:14px 8px;
-  text-align:center; cursor:pointer; position:relative; overflow:hidden;
+
+/* Hero ring (Oura-style single big ring + segmented switcher) */
+.hero-card{
+  background:linear-gradient(160deg, var(--surface), var(--surface2)); border:1px solid var(--border);
+  border-radius:24px; padding:24px 16px 18px; text-align:center; margin-bottom:14px;
 }
-.score-card-label{font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); margin-top:6px;}
-.score-card.readiness .score-card-label{color:var(--readiness);}
-.score-card.sleep .score-card-label{color:var(--sleep);}
-.score-card.activity .score-card-label{color:var(--activity);}
-.score-val{font-size:13px; font-weight:700; margin-top:2px; color:var(--muted);}
-.ring-wrap{position:relative; width:74px; height:74px; margin:0 auto;}
-.ring-wrap svg{transform:rotate(-90deg);}
-.ring-num{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:800;}
+.hero-ring-wrap{position:relative; width:172px; height:172px; margin:0 auto 6px;}
+.hero-ring-wrap svg{transform:rotate(-90deg); filter:drop-shadow(0 0 14px var(--hero-glow, transparent));}
+.hero-ring-center{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;}
+.hero-ring-num{font-size:52px; font-weight:800; line-height:1; letter-spacing:-0.02em;}
+.hero-ring-status{font-size:13px; font-weight:700; margin-top:4px;}
+.hero-ring-trend{font-size:11px; font-weight:800; margin-top:6px; display:flex; align-items:center; gap:3px;}
+.hero-pills{display:flex; gap:8px; justify-content:center; margin-top:14px;}
+.hero-pill{
+  flex:1; max-width:130px; padding:9px 6px; border-radius:14px; border:1.5px solid var(--border);
+  background:var(--surface); cursor:pointer; text-align:center; transition:.15s;
+}
+.hero-pill.active{border-color:currentColor; background:var(--surface2);}
+.hero-pill-label{font-size:10.5px; font-weight:800; text-transform:uppercase; letter-spacing:.03em; opacity:.85;}
+.hero-pill-val{font-size:16px; font-weight:800; margin-top:2px;}
 
 /* Stats grid */
 .stats-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:12px;}
@@ -334,6 +361,15 @@ textarea.journal-note{
   <div class="view hidden" id="view-insights"></div>
   <div class="view hidden" id="view-journal"></div>
   <div class="view hidden" id="view-data"></div>
+
+  <div class="bottom-nav">
+    <button class="bottom-nav-btn active" data-tab="today"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="3.5" stroke="currentColor" stroke-width="2"/></svg>Today</button>
+    <button class="bottom-nav-btn" data-tab="trends"><svg viewBox="0 0 24 24" fill="none"><path d="M4 19V5M4 19h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M7 15l4-5 3 3 5-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Trends</button>
+    <button class="bottom-nav-btn" data-tab="calendar"><svg viewBox="0 0 24 24" fill="none"><rect x="4" y="5" width="16" height="15" rx="2" stroke="currentColor" stroke-width="2"/><path d="M4 9h16M8 3v4M16 3v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Calendar</button>
+    <button class="bottom-nav-btn" data-tab="insights"><svg viewBox="0 0 24 24" fill="none"><path d="M9 18h6M10 21h4M12 3a6 6 0 00-3.6 10.8c.4.3.6.8.6 1.3V16h6v-.9c0-.5.2-1 .6-1.3A6 6 0 0012 3z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Insights</button>
+    <button class="bottom-nav-btn" data-tab="journal"><svg viewBox="0 0 24 24" fill="none"><path d="M6 4h9l3 3v13a1 1 0 01-1 1H6a1 1 0 01-1-1V5a1 1 0 011-1z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M8 10h8M8 14h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Journal</button>
+    <button class="bottom-nav-btn" data-tab="data"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Data</button>
+  </div>
 </div>
 
 <script>
@@ -388,6 +424,51 @@ const STORAGE_KEY = 'rings_oura_data_v1';
 const JOURNAL_KEY = 'rings_oura_journal_v1';
 const THEME_KEY = 'rings_oura_theme';
 
+/* =========================================================
+   STORAGE (IndexedDB — localStorage tops out around 5-10MB per
+   browser, which real multi-year Oura exports (heart rate/
+   temperature samples especially) blow through. IndexedDB's
+   quota is tied to free disk space, effectively hundreds of MB+.
+   ========================================================= */
+const IDB_NAME = 'rings_oura_db';
+const IDB_STORE = 'kv';
+function idbOpen(){
+  return new Promise((resolve,reject)=>{
+    if(!window.indexedDB){ reject(new Error('no indexeddb')); return; }
+    const req = indexedDB.open(IDB_NAME, 1);
+    req.onupgradeneeded = ()=>{ req.result.createObjectStore(IDB_STORE); };
+    req.onsuccess = ()=>resolve(req.result);
+    req.onerror = ()=>reject(req.error);
+  });
+}
+async function idbGet(key){
+  const db = await idbOpen();
+  return new Promise((resolve,reject)=>{
+    const tx = db.transaction(IDB_STORE,'readonly');
+    const req = tx.objectStore(IDB_STORE).get(key);
+    req.onsuccess = ()=>resolve(req.result);
+    req.onerror = ()=>reject(req.error);
+  });
+}
+async function idbSet(key, value){
+  const db = await idbOpen();
+  return new Promise((resolve,reject)=>{
+    const tx = db.transaction(IDB_STORE,'readwrite');
+    tx.objectStore(IDB_STORE).put(value, key);
+    tx.oncomplete = ()=>resolve();
+    tx.onerror = ()=>reject(tx.error);
+  });
+}
+async function idbDelete(key){
+  const db = await idbOpen();
+  return new Promise((resolve,reject)=>{
+    const tx = db.transaction(IDB_STORE,'readwrite');
+    tx.objectStore(IDB_STORE).delete(key);
+    tx.oncomplete = ()=>resolve();
+    tx.onerror = ()=>reject(tx.error);
+  });
+}
+
 let DATA = { activity:{}, readiness:{}, sleep:{}, sleepdetail:{}, spo2:{}, stress:{}, resilience:{}, cardio:{}, heartrate:{}, temperature:{} };
 let JOURNAL = {}; // date -> {tags:[...], note:''}
 let ALL_DATES = [];
@@ -397,6 +478,7 @@ let trendMetric = 'readiness';
 let trendRange = 30;
 let calYear = null;
 let calMetric = 'readiness';
+let heroMetric = 'readiness';
 
 const FILE_MAP = {
   'dailyactivity':'activity',
@@ -415,20 +497,39 @@ const FILE_MAP_ORDER = ['dailyactivity','dailyreadiness','dailysleep','sleeptime
 
 const loadedFiles = {};
 
-function loadPersisted(){
+async function loadPersisted(){
   try{
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if(raw){ DATA = Object.assign(DATA, JSON.parse(raw)); }
-  }catch(e){}
-  try{
-    const rawJ = localStorage.getItem(JOURNAL_KEY);
-    if(rawJ) JOURNAL = JSON.parse(rawJ);
-  }catch(e){}
+    let data = await idbGet('data');
+    let journal = await idbGet('journal');
+    // One-time migration from the old localStorage-based storage (limited to a few MB)
+    if(data === undefined){
+      try{
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if(raw){ data = JSON.parse(raw); await idbSet('data', data); localStorage.removeItem(STORAGE_KEY); }
+      }catch(e){}
+    }
+    if(journal === undefined){
+      try{
+        const rawJ = localStorage.getItem(JOURNAL_KEY);
+        if(rawJ){ journal = JSON.parse(rawJ); await idbSet('journal', journal); localStorage.removeItem(JOURNAL_KEY); }
+      }catch(e){}
+    }
+    if(data) DATA = Object.assign(DATA, data);
+    if(journal) JOURNAL = journal;
+  }catch(e){
+    console.error('Storage unavailable', e);
+  }
   const theme = localStorage.getItem(THEME_KEY);
   if(theme) document.body.setAttribute('data-theme', theme);
 }
-function persistData(){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(DATA)); }catch(e){ alert('Could not save data locally — your browser storage may be full.'); } }
-function persistJournal(){ try{ localStorage.setItem(JOURNAL_KEY, JSON.stringify(JOURNAL)); }catch(e){} }
+async function persistData(){
+  try{ await idbSet('data', DATA); }
+  catch(e){ console.error(e); alert('Could not save data locally: '+e.message); }
+}
+async function persistJournal(){
+  try{ await idbSet('journal', JOURNAL); }
+  catch(e){ console.error(e); }
+}
 
 /* =========================================================
    FILE HANDLING
@@ -451,12 +552,17 @@ async function handleFiles(files){
     const rows = parseCSV(text);
     const dataKey = FILE_MAP[key];
     if(dataKey === 'heartrate' || dataKey === 'temperature' || dataKey === 'sleepdetail'){
-      // multiple rows per day -> arrays, merged/deduped by timestamp
+      // multiple rows per day -> arrays, deduped by timestamp so re-importing
+      // overlapping exports doesn't balloon storage with repeated samples
       rows.forEach(row=>{
         const d = dateKey(row.day || row.timestamp || row.bedtime_start || '');
         if(!d) return;
         if(!DATA[dataKey][d]) DATA[dataKey][d] = [];
-        DATA[dataKey][d].push(row);
+        const uniqueKey = row.timestamp || row.bedtime_start || '';
+        const arr = DATA[dataKey][d];
+        const existingIdx = uniqueKey ? arr.findIndex(r=>(r.timestamp||r.bedtime_start||'')===uniqueKey) : -1;
+        if(existingIdx >= 0) arr[existingIdx] = row;
+        else arr.push(row);
       });
     } else {
       rows.forEach(row=>{
@@ -596,8 +702,32 @@ function prettyKey(k){
    ========================================================= */
 document.addEventListener('DOMContentLoaded', init);
 
-function init(){
-  loadPersisted();
+async function dedupeArrayStores(){
+  let removed = 0;
+  ['heartrate','temperature','sleepdetail'].forEach(dataKey=>{
+    Object.keys(DATA[dataKey]).forEach(d=>{
+      const arr = DATA[dataKey][d];
+      if(!Array.isArray(arr) || arr.length < 2) return;
+      const seen = new Map();
+      arr.forEach(row=>{
+        const uniqueKey = row.timestamp || row.bedtime_start || JSON.stringify(row);
+        seen.set(uniqueKey, row); // later entries win, matches import-time behavior
+      });
+      if(seen.size < arr.length){
+        removed += arr.length - seen.size;
+        DATA[dataKey][d] = Array.from(seen.values());
+      }
+    });
+  });
+  if(removed > 0){
+    await persistData();
+    console.log('Deduped '+removed+' repeated samples from past overlapping imports.');
+  }
+}
+
+async function init(){
+  await loadPersisted();
+  await dedupeArrayStores();
   recomputeDates();
   wireUploadScreen();
   wireTopbar();
@@ -615,12 +745,8 @@ function showApp(){
 }
 
 function wireTopbar(){
-  document.querySelectorAll('.tab-btn').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-      btn.classList.add('active');
-      renderTab(btn.dataset.tab);
-    });
+  document.querySelectorAll('.tab-btn, .bottom-nav-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>renderTab(btn.dataset.tab));
   });
   document.getElementById('theme-toggle').addEventListener('click', ()=>{
     const cur = document.body.getAttribute('data-theme');
@@ -635,6 +761,7 @@ function renderTab(tab){
   document.querySelectorAll('.view').forEach(v=>v.classList.add('hidden'));
   const el = document.getElementById('view-'+tab);
   el.classList.remove('hidden');
+  document.querySelectorAll('.tab-btn, .bottom-nav-btn').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
   if(tab==='today') renderToday();
   else if(tab==='trends') renderTrends();
   else if(tab==='calendar') renderCalendar();
@@ -689,10 +816,7 @@ function renderToday(){
 
   left += weekSummaryCard();
 
-  left += '<div class="score-section">'+
-    scoreCard('readiness','Readiness',rScore,'var(--readiness)')+
-    scoreCard('sleep','Sleep',sScore,'var(--sleep)')+
-    scoreCard('activity','Activity',aScore,'var(--activity)')+'</div>';
+  left += heroCard(day, rScore, sScore, aScore);
 
   // Quick stats
   left += '<div class="stats-grid">';
@@ -755,6 +879,29 @@ function renderToday(){
   el.querySelectorAll('.date-pill').forEach(p=>{
     p.addEventListener('click', ()=>{ selectedDate = p.dataset.date; renderToday(); });
   });
+  el.querySelectorAll('.hero-pill').forEach(p=>{
+    p.addEventListener('click', ()=>{ heroMetric = p.dataset.metric; renderToday(); });
+  });
+}
+
+function heroCard(day, rScore, sScore, aScore){
+  const metrics = {
+    readiness: {score:rScore, color:'var(--readiness)', label:'Readiness'},
+    sleep: {score:sScore, color:'var(--sleep)', label:'Sleep'},
+    activity: {score:aScore, color:'var(--activity)', label:'Activity'}
+  };
+  const hero = metrics[heroMetric] || metrics.readiness;
+  const pills = ['readiness','sleep','activity'].map(k=>{
+    const m = metrics[k];
+    const active = k===heroMetric ? ' active' : '';
+    return '<div class="hero-pill'+active+'" data-metric="'+k+'" style="color:'+m.color+'">'+
+      '<div class="hero-pill-label">'+m.label+'</div><div class="hero-pill-val">'+(m.score||'--')+'</div></div>';
+  }).join('');
+  return '<div class="hero-card">'+
+    '<div class="hero-ring-wrap" style="--hero-glow:'+hero.color+'55">'+ringSVG(hero.score, hero.color, 172, 14)+
+    '<div class="hero-ring-center"><div class="hero-ring-num" style="color:'+(hero.score?hero.color:'var(--muted)')+'">'+(hero.score||'--')+'</div>'+
+    '<div class="hero-ring-status">'+scoreLabel(hero.score)+'</div>'+trendBadge(heroMetric, selectedDate)+'</div></div>'+
+    '<div class="hero-pills">'+pills+'</div></div>';
 }
 
 /* Small inline sparkline: values -> SVG polyline, null-safe */
@@ -826,12 +973,6 @@ function trendBadge(metricKey, endDate){
   const cls = diff>=2?'up':diff<=-2?'down':'flat';
   const arrow = diff>=2?'▲':diff<=-2?'▼':'–';
   return '<div class="ring-trend '+cls+'">'+arrow+' vs your avg</div>';
-}
-function scoreCard(cls, label, score, color){
-  return '<div class="score-card '+cls+'">'+
-    '<div class="ring-wrap">'+ringSVG(score,color)+'<div class="ring-num" style="color:'+(score?color:'var(--muted)')+'">'+(score||'--')+'</div></div>'+
-    '<div class="score-card-label">'+label+'</div><div class="score-val">'+scoreLabel(score)+'</div>'+
-    trendBadge(cls, selectedDate)+'</div>';
 }
 function statBox(label, value, unit){
   return '<div class="stat-box"><div class="stat-box-label">'+label+'</div><div class="stat-box-value">'+value+'<span class="stat-box-unit">'+unit+'</span></div></div>';
@@ -1319,6 +1460,7 @@ function renderData(){
   const first = ALL_DATES[0], last = ALL_DATES[ALL_DATES.length-1];
   let html = '<div class="card">';
   html += '<div class="loaded-range">Loaded: <strong>'+ALL_DATES.length+'</strong> days, from '+first+' to '+last+'</div>';
+  html += '<div class="loaded-range" id="storage-usage">Storage: checking…</div>';
   html += '<div class="settings-row"><div><div class="s-label">Add more data</div><div class="s-desc">Import additional exports — new dates merge in, existing dates get updated.</div></div><button class="btn primary" id="add-more-btn">Import CSVs</button></div>';
   html += '<input type="file" id="more-file-input" multiple accept=".csv" style="display:none">';
   html += '<div class="settings-row"><div><div class="s-label">Export backup</div><div class="s-desc">Save everything (data + journal) as one JSON file you control.</div></div><button class="btn" id="export-btn">Export JSON</button></div>';
@@ -1330,6 +1472,21 @@ function renderData(){
 
   el.innerHTML = html;
 
+  if(navigator.storage && navigator.storage.estimate){
+    navigator.storage.estimate().then(est=>{
+      const usedMB = (est.usage/1048576).toFixed(1);
+      const quotaMB = (est.quota/1048576).toFixed(0);
+      const bar = document.getElementById('storage-usage');
+      if(bar) bar.textContent = 'Storage: '+usedMB+' MB used of about '+quotaMB+' MB available on this device';
+    }).catch(()=>{
+      const bar = document.getElementById('storage-usage');
+      if(bar) bar.textContent = '';
+    });
+  } else {
+    const bar = document.getElementById('storage-usage');
+    if(bar) bar.textContent = '';
+  }
+
   document.getElementById('add-more-btn').addEventListener('click', ()=>document.getElementById('more-file-input').click());
   document.getElementById('more-file-input').addEventListener('change', async e=>{
     await handleFiles(Array.from(e.target.files));
@@ -1340,10 +1497,12 @@ function renderData(){
   document.getElementById('export-btn').addEventListener('click', exportBackup);
   document.getElementById('import-json-btn').addEventListener('click', ()=>document.getElementById('import-json-input').click());
   document.getElementById('import-json-input').addEventListener('change', importBackup);
-  document.getElementById('clear-btn').addEventListener('click', ()=>{
+  document.getElementById('clear-btn').addEventListener('click', async ()=>{
     if(confirm('This permanently deletes all imported Oura data and journal entries from this browser. Continue?')){
       localStorage.removeItem(STORAGE_KEY);
       localStorage.removeItem(JOURNAL_KEY);
+      await idbDelete('data');
+      await idbDelete('journal');
       location.reload();
     }
   });
@@ -1367,7 +1526,7 @@ async function importBackup(e){
     if(!payload.data) throw new Error('bad format');
     DATA = Object.assign({activity:{},readiness:{},sleep:{},sleepdetail:{},spo2:{},stress:{},resilience:{},cardio:{},heartrate:{},temperature:{}}, payload.data);
     JOURNAL = payload.journal || {};
-    persistData(); persistJournal();
+    await persistData(); await persistJournal();
     recomputeDates();
     renderData();
     alert('Backup restored: '+ALL_DATES.length+' days loaded.');
